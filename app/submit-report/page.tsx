@@ -113,7 +113,7 @@ export default function SubmitReport() {
                     <FormItem>
                       <FormLabel>Full Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="John Doe" {...field} />
+                        <Input placeholder="Your Name" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -127,7 +127,7 @@ export default function SubmitReport() {
                     <FormItem>
                       <FormLabel>Roll Number</FormLabel>
                       <FormControl>
-                        <Input placeholder="12345" {...field} />
+                        <Input placeholder="2K22CSUN01098" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -141,7 +141,7 @@ export default function SubmitReport() {
                     <FormItem>
                       <FormLabel>Class</FormLabel>
                       <FormControl>
-                        <Input placeholder="MBBS-A" {...field} />
+                        <Input placeholder="CSE-5A" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -175,7 +175,7 @@ export default function SubmitReport() {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="john@example.com" {...field} />
+                        <Input type="email" placeholder="Your Email" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
