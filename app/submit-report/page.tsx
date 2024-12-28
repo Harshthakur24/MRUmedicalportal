@@ -9,16 +9,32 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
+  parentName: z.string().min(2, "Parent name is required"),
   rollNumber: z.string().min(1, "Roll number is required"),
   class: z.string().min(1, "Class is required"),
-  semester: z.number().min(1).max(8),
-  email: z.string().email(),
-  title: z.string().min(1, "Report title is required"),
-  description: z.string().optional(),
-  file: z.any(),
+  section: z.string().min(1, "Section is required"),
+  disease: z.string().min(1, "Disease specification is required"),
+  doctorName: z.string().min(1, "Doctor's name is required"),
+  doctorAddress: z.string().min(1, "Doctor's address is required"),
+  dateFrom: z.string().min(1, "Start date is required"),
+  dateTo: z.string().min(1, "End date is required"),
+  workingDays: z.number().min(0),
+  needsT1Reexam: z.boolean(),
+  t1Subjects: z.string().optional(),
+  needsT2Reexam: z.boolean(),
+  t2Subjects: z.string().optional(),
+  studentContact: z.string().min(10, "Valid contact number required"),
+  parentContact: z.string().min(10, "Valid parent contact number required"),
+  files: z.object({
+    medicalCertificate: z.any(),
+    opdIpdSlip: z.any(),
+    dischargeSlip: z.any(),
+    otherDocuments: z.any().optional(),
+  }),
 });
 
 export default function SubmitReport() {
@@ -29,12 +45,22 @@ export default function SubmitReport() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
+      parentName: "",
       rollNumber: "",
       class: "",
-      semester: 1,
-      email: "",
-      title: "",
-      description: "",
+      section: "",
+      disease: "",
+      doctorName: "",
+      doctorAddress: "",
+      dateFrom: "",
+      dateTo: "",
+      workingDays: 0,
+      needsT1Reexam: false,
+      t1Subjects: "",
+      needsT2Reexam: false,
+      t2Subjects: "",
+      studentContact: "",
+      parentContact: "",
     },
   });
 
@@ -42,32 +68,30 @@ export default function SubmitReport() {
     try {
       setIsLoading(true);
 
-      // First create the student
-      const studentResponse = await fetch("/api/students", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: values.name,
-          rollNumber: values.rollNumber,
-          class: values.class,
-          semester: values.semester,
-          email: values.email,
-        }),
-      });
-
-      const student = await studentResponse.json();
-
-      if (!studentResponse.ok) throw new Error(student.error);
-
       // Then create the report
       const reportResponse = await fetch("/api/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: values.title,
-          description: values.description,
-          fileUrl: "placeholder-url", // In a real app, you'd upload the file first
-          studentId: student.id,
+          parentName: values.parentName,
+          class: values.class,
+          section: values.section,
+          disease: values.disease,
+          doctorName: values.doctorName,
+          doctorAddress: values.doctorAddress,
+          dateFrom: values.dateFrom,
+          dateTo: values.dateTo,
+          workingDays: values.workingDays,
+          t1Reexam: values.needsT1Reexam,
+          t1Subjects: values.t1Subjects,
+          t2Reexam: values.needsT2Reexam,
+          t2Subjects: values.t2Subjects,
+          studentContact: values.studentContact,
+          parentContact: values.parentContact,
+          medicalCertificate: "placeholder-url", // Replace with actual file upload
+          opdIpdSlip: null,
+          dischargeSlip: null,
+          otherReports: [],
         }),
       });
 
@@ -94,12 +118,12 @@ export default function SubmitReport() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         <Card className="p-8">
           <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-gray-900">Submit Medical Report</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Medical Report Submission & Request for Re-Exams</h1>
             <p className="mt-2 text-gray-600">
-              Please fill in your details and upload your medical report
+              To be filled by student within 3 days of Re-joining
             </p>
           </div>
 
@@ -111,9 +135,23 @@ export default function SubmitReport() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Full Name</FormLabel>
+                      <FormLabel>Name of Student</FormLabel>
                       <FormControl>
-                        <Input placeholder="Your Name" {...field} />
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="parentName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>S/o or D/o</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -150,15 +188,98 @@ export default function SubmitReport() {
 
                 <FormField
                   control={form.control}
-                  name="semester"
+                  name="section"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Semester</FormLabel>
+                      <FormLabel>Section</FormLabel>
+                      <FormControl>
+                        <Input placeholder="A" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="disease"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Disease</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Diabetes" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="doctorName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Doctor&apos;s Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Dr. John Doe" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="doctorAddress"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Doctor&apos;s Address</FormLabel>
+                      <FormControl>
+                        <Input placeholder="123 Main St, Anytown, USA" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="dateFrom"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="dateTo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>End Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="workingDays"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Working Days</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
-                          min="1"
-                          max="8"
+                          min="0"
                           {...field}
                           onChange={(e) => field.onChange(parseInt(e.target.value))}
                         />
@@ -170,12 +291,29 @@ export default function SubmitReport() {
 
                 <FormField
                   control={form.control}
-                  name="email"
+                  name="needsT1Reexam"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center gap-2">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel>Needs T1 Re-exam</FormLabel>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="t1Subjects"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>T1 Subjects</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="Your Email" {...field} />
+                        <Input placeholder="Subjects" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -184,50 +322,85 @@ export default function SubmitReport() {
 
                 <FormField
                   control={form.control}
-                  name="title"
+                  name="needsT2Reexam"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center gap-2">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel>Needs T2 Re-exam</FormLabel>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="t2Subjects"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Report Title</FormLabel>
+                      <FormLabel>T2 Subjects</FormLabel>
                       <FormControl>
-                        <Input placeholder="Medical Certificate" {...field} />
+                        <Input placeholder="Subjects" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="studentContact"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Student Contact</FormLabel>
+                      <FormControl>
+                        <Input placeholder="123-456-7890" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="parentContact"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Parent Contact</FormLabel>
+                      <FormControl>
+                        <Input placeholder="123-456-7890" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="col-span-2 space-y-4">
+                  <h3 className="text-lg font-semibold">Required Documents</h3>
+
+                  <FormField
+                    control={form.control}
+                    name="files.medicalCertificate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Medical cum Fitness Certificate</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={(e) => field.onChange(e.target.files?.[0])}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Brief description of the report" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="file"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Upload Report (PDF)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="file"
-                        accept=".pdf"
-                        onChange={(e) => field.onChange(e.target.files?.[0])}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Submitting..." : "Submit Report"}

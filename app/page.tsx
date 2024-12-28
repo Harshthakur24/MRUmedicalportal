@@ -1,3 +1,4 @@
+"use client"
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GraduationCap, FileText, Users, Shield } from "lucide-react";
@@ -6,7 +7,7 @@ import Image from "next/image";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen flex flex-col">
       {/* Header Section */}
       <header className="bg-[#004a7c] text-white py-4 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
@@ -22,7 +23,9 @@ export default function Home() {
               MRU Medical Compliance Portal
             </h2>
           </div>
-          <nav className="space-x-4">
+          <nav className="space-x-6">
+            <Link href="/login" className="hover:text-blue-200 transition">Login</Link>
+            <Link href="/register" className="hover:text-blue-200 transition">Register</Link>
             <Link href="/dashboard" className="hover:text-blue-200 transition">Dashboard</Link>
             <Link href="/submit-report" className="hover:text-blue-200 transition">Submit Report</Link>
             <Link href="/help" className="hover:text-blue-200 transition">Help</Link>
@@ -31,8 +34,8 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <div className="relative bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="relative bg-gradient-to-b from-[#004a7c]/10 to-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center">
             <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl md:text-6xl">
               Medical Compliance
@@ -58,7 +61,7 @@ export default function Home() {
       </div>
 
       {/* Features Section */}
-      <div className="py-16 bg-gray-100">
+      <div className="py-20 bg-gradient-to-b from-gray-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Use Our Portal?</h2>
@@ -67,7 +70,7 @@ export default function Home() {
             </p>
           </div>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-            <Card className="bg-white border-2 border-[#004a7c]/10 hover:shadow-xl transition-all duration-300">
+            <Card className="bg-white border-2 border-[#004a7c]/10 hover:shadow-xl transition-all duration-300 hover:border-[#004a7c]/30">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-center h-16 w-16 rounded-full bg-[#004a7c] text-white mb-4 mx-auto">
                   <FileText className="h-8 w-8" />
@@ -83,7 +86,7 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white border-2 border-[#004a7c]/10 hover:shadow-xl transition-all duration-300">
+            <Card className="bg-white border-2 border-[#004a7c]/10 hover:shadow-xl transition-all duration-300 hover:border-[#004a7c]/30">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-center h-16 w-16 rounded-full bg-[#004a7c] text-white mb-4 mx-auto">
                   <Shield className="h-8 w-8" />
@@ -99,7 +102,7 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white border-2 border-[#004a7c]/10 hover:shadow-xl transition-all duration-300">
+            <Card className="bg-white border-2 border-[#004a7c]/10 hover:shadow-xl transition-all duration-300 hover:border-[#004a7c]/30">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-center h-16 w-16 rounded-full bg-[#004a7c] text-white mb-4 mx-auto">
                   <GraduationCap className="h-8 w-8" />
@@ -119,15 +122,15 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-[#004a7c] text-white py-12">
+      <footer className="bg-gradient-to-b from-[#004a7c] to-[#003a61] text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-sm">
+          <p className="text-sm opacity-90">
             © 2024 University Medical Compliance Portal. All Rights Reserved.
           </p>
           <div className="mt-4 space-x-4">
-            <Link href="/privacy" className="hover:text-blue-200">Privacy Policy</Link>
-            <Link href="/terms" className="hover:text-blue-200">Terms of Service</Link>
-            <Link href="/contact" className="hover:text-blue-200">Contact Support</Link>
+            <Link href="/privacy" className="hover:text-blue-200 transition-colors duration-200">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-blue-200 transition-colors duration-200">Terms of Service</Link>
+            <Link href="/contact" className="hover:text-blue-200 transition-colors duration-200">Contact Support</Link>
           </div>
         </div>
       </footer>

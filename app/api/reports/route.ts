@@ -1,24 +1,45 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getServerSession } from 'next-auth';
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { authOptions } from '@/lib/auth';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { title, description, fileUrl, studentId } = body;
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: 'You must be logged in to submit a report' },
+        { status: 401 }
+      );
+    }
 
-    const report = await prisma.report.create({
+    const data = await req.json();
+    
+    // Validate required fields
+    const requiredFields = ['parentName', 'class', 'section', 'disease'];
+    for (const field of requiredFields) {
+      if (!data[field]) {
+        return NextResponse.json(
+          { error: `${field} is required` },
+          { status: 400 }
+        );
+      }
+    }
+
+    const report = await prisma.medicalReport.create({
       data: {
-        title,
-        description,
-        fileUrl,
-        studentId,
+        studentId: session.user.id,
+        name: session.user.name || '',
+        rollNumber: session.user.rollNumber ?? '',
+        ...data,
       },
     });
 
     return NextResponse.json(report);
   } catch (error) {
+    console.error('Report submission error:', error);
     return NextResponse.json(
-      { error: "Failed to create report" },
+      { error: 'Failed to submit report' },
       { status: 500 }
     );
   }
@@ -26,9 +47,10 @@ export async function POST(req: Request) {
 
 export async function GET() {
   try {
-    const reports = await prisma.report.findMany({
+    const reports = await prisma.medicalReport.findMany({
       include: {
         student: true,
+        reviewer: true,
       },
     });
 
