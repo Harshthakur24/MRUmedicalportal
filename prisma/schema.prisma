@@ -29,7 +29,7 @@ model MedicalReport {
   id        String   @id @default(cuid())
   studentId String
   student   User     @relation("Submissions", fields: [studentId], references: [id])
-  student2  Student? @relation(fields: [studentId], references: [id], map: "MedicalReport_studentId_Student_fkey")
+  student2  student? @relation(fields: [studentId], references: [id], map: "MedicalReport_studentId_Student_fkey")
 
   // Student Details
   name          String
@@ -104,7 +104,7 @@ enum DeanApproval {
   REJECTED
 }
 
-model Student {
+model student {
   id         String          @id @default(cuid())
   name       String
   rollNumber String          @unique
