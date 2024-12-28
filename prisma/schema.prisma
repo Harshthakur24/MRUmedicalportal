@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma"
 }
 
 datasource db {
@@ -101,4 +101,15 @@ enum DeanApproval {
   ATTENDANCE
   BOTH
   REJECTED
+}
+
+model Student {
+  id         String   @id @default(cuid())
+  name       String
+  rollNumber String   @unique
+  class      String
+  semester   Int
+  email      String   @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
