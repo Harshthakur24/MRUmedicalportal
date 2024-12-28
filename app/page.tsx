@@ -7,15 +7,15 @@ import Image from "next/image";
 export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header Section */}
+      {/* Header Sectioon */}
       <header className="bg-[#004a7c] text-white py-4 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
           <div className="flex items-center space-x-4">
-            <Image 
-              src="/mru.jpeg" 
-              alt="College Logo" 
-              width={80} 
-              height={80} 
+            <Image
+              src="/mru.jpeg"
+              alt="College Logo"
+              width={80}
+              height={80}
               className="rounded-full"
             />
             <h2 className="text-2xl font-bold tracking-tight">
