@@ -4,15 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
     const router = useRouter();
+    const { data: session, status } = useSession();
+
+
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -21,35 +24,25 @@ export default function LoginPage() {
         const formData = new FormData(e.currentTarget);
 
         try {
-            const res = await signIn("credentials", {
-                email: formData.get("email"),
-                password: formData.get("password"),
-                remember: rememberMe,
+            const result = await signIn('credentials', {
+                email: formData.get('email') as string,
+                password: formData.get('password') as string,
                 redirect: false,
             });
 
-            if (res?.error) {
-                toast.error("Invalid credentials");
+            if (result?.error) {
+                toast.error(result.error);
                 setIsLoading(false);
                 return;
             }
 
-            toast.success("Logged in successfully");
-
-            // Redirect based on user role
-            const user = await fetch('/api/auth/me').then(res => res.json());
-
-            if (user.role === 'HOD') {
-                router.push('/hod');
-            } else if (user.role === 'ADMIN') {
-                router.push('/admin');
-            } else {
-                router.push('/'); // Default route for students
+            if (result?.ok) {
+                toast.success('Logged in successfully');
+                router.push('/submit-report');
+                router.refresh();
             }
-
-            router.refresh();
         } catch (error) {
-            toast.error("Something went wrong");
+            toast.error('Failed to login');
             setIsLoading(false);
         }
     };

@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "MedicalReport" ADD COLUMN     "submissionDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

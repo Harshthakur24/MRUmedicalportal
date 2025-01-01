@@ -1,25 +1,21 @@
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import { NextAuthOptions } from "next-auth";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "./prisma";
-import bcrypt from "bcryptjs";
-import crypto from 'crypto';
-import jwt from 'jsonwebtoken';
+import { compare } from "bcryptjs";
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-default-secret';
-
-export const authOptions: NextAuthOptions = {
+export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: "credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null;
+          throw new Error("Invalid credentials");
         }
 
         const student = await prisma.student.findUnique({
@@ -28,19 +24,20 @@ export const authOptions: NextAuthOptions = {
           }
         });
 
-        if (!student) {
-          return null;
+        if (!student || !student?.password) {
+          throw new Error("Invalid credentials");
         }
 
-        const passwordMatch = await bcrypt.compare(
+        const isCorrectPassword = await compare(
           credentials.password,
           student.password
         );
 
-        if (!passwordMatch) {
-          return null;
+        if (!isCorrectPassword) {
+          throw new Error("Invalid credentials");
         }
 
+        // Return the student object with necessary fields
         return {
           id: student.id,
           email: student.email,
@@ -51,28 +48,24 @@ export const authOptions: NextAuthOptions = {
     })
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.role = user.role;
-      }
-      return token;
-    },
+    // Make sure session includes the student ID
     async session({ session, token }) {
-      if (session?.user) {
-        session.user.id = token.sub as string;
-        session.user.role = token.role as string;
+      if (token && session.user) {
+        session.user.id = token.sub!;
       }
       return session;
+    },
+    // Include student ID in the JWT token
+    async jwt({ token, user }) {
+      if (user) {
+        token.sub = user.id;
+      }
+      return token;
     }
-  }
-};
-
-// For JWT tokens (login)
-export function generateJWTToken(payload: object): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
-}
-
-// For verification/reset tokens (email verification, password reset)
-export function generateToken(): string {
-  return crypto.randomBytes(32).toString('hex');
-} 
+  },
+  session: {
+    strategy: "jwt"
+  },
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === "development",
+}; 

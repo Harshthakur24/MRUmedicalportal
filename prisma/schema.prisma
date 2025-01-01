@@ -8,59 +8,54 @@ datasource db {
 }
 
 model Student {
-  id                   String    @id @default(cuid())
+  id                   String          @id @default(cuid())
   name                 String
-  email                String    @unique
+  email                String          @unique
   password             String
-  role                 Role      @default(STUDENT)
-  rollNumber           String    @unique
+  role                 Role            @default(STUDENT)
+  rollNumber           String          @unique
   department           String
   year                 Int
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
   resetPasswordToken   String?
   verificationToken    String?
   emailVerified        DateTime?
   resetPasswordExpires DateTime?
-
-  // Relations
-  submittedReports MedicalReport[] @relation("SubmittedReports")
-  reviewedReports  MedicalReport[] @relation("ReviewedReports")
+  submittedReports     MedicalReport[] @relation("SubmittedReports")
+  reviewedReports      MedicalReport[] @relation("ReviewedReports")
 }
 
 model MedicalReport {
-  id                 String   @id @default(cuid())
+  id                 String       @id @default(cuid())
   studentId          String
-  student            Student  @relation("SubmittedReports", fields: [studentId], references: [id])
+  student            Student      @relation("SubmittedReports", fields: [studentId], references: [id])
+  studentName        String
+  rollNumber         String
   dateOfAbsence      DateTime
   dateTo             DateTime
-  reason             String   @db.Text
+  reason             String
   doctorName         String
   doctorAddress      String
   medicalCertificate String
+  status             ReportStatus @default(PENDING)
   otherReports       String[]
-  status             Status   @default(PENDING)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  parentName         String
+  parentContact      String
+  studentContact     String
+  className          String
+  section            String
+  disease            String
+  workingDays        Int
+  t1Reexam           Boolean      @default(false)
+  t1Subjects         String?
+  t2Reexam           Boolean      @default(false)
+  t2Subjects         String?
+  submissionDate     DateTime     @default(now())
   reviewerId         String?
-  reviewer           Student? @relation("ReviewedReports", fields: [reviewerId], references: [id])
-
-  // New fields
-  parentName     String
-  parentContact  String
-  studentContact String
-  class          String
-  section        String
-  disease        String
-  workingDays    Int
-  t1Reexam       Boolean @default(false)
-  t1Subjects     String?
-  t2Reexam       Boolean @default(false)
-  t2Subjects     String?
-  dischargeSlip  String?
-  opdIpdSlip     String?
-
-  @@index([studentId])
+  reviewer           Student?     @relation("ReviewedReports", fields: [reviewerId], references: [id])
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 }
 
 enum Role {
@@ -69,8 +64,7 @@ enum Role {
   STUDENT
 }
 
-enum Status {
+enum ReportStatus {
   PENDING
-  APPROVED
   REJECTED
 }
