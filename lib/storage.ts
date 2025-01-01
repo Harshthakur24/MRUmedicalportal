@@ -24,4 +24,10 @@ export async function uploadToStorage(file: File): Promise<string> {
   );
 
   return `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+}
+
+export async function uploadFile(file: File): Promise<string> {
+    // In production, implement actual file upload to cloud storage
+    // For now, return a mock URL
+    return `/uploads/${file.name}`;
 } 

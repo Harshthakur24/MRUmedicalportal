@@ -1,135 +1,123 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import toast from 'react-hot-toast';
-import { uploadToStorage } from '@/lib/storage';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 export default function MedicalReportForm() {
-    const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
-    const [files, setFiles] = useState<{
-        medicalCertificate?: File;
-        opdIpdSlip?: File;
-        dischargeSlip?: File;
-        otherReports: File[];
-    }>({
-        otherReports: [],
-    });
+    const router = useRouter();
+    const { data: session } = useSession();
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setIsLoading(true);
 
         try {
-            const formData = new FormData(e.currentTarget);
-
-            // Upload files first
-            const medicalCertificateUrl = files.medicalCertificate
-                ? await uploadToStorage(files.medicalCertificate)
-                : '';
-
-            const opdIpdSlipUrl = files.opdIpdSlip
-                ? await uploadToStorage(files.opdIpdSlip)
-                : '';
-
-            const dischargeSlipUrl = files.dischargeSlip
-                ? await uploadToStorage(files.dischargeSlip)
-                : '';
-
-            const otherReportUrls = await Promise.all(
-                files.otherReports.map(file => uploadToStorage(file))
-            );
+            const formElement = e.currentTarget;
+            const formData = new FormData(formElement);
 
             const response = await fetch('/api/reports', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    parentName: formData.get('parentName'),
-                    class: formData.get('class'),
-                    section: formData.get('section'),
-                    disease: formData.get('disease'),
-                    doctorName: formData.get('doctorName'),
-                    doctorAddress: formData.get('doctorAddress'),
-                    dateFrom: formData.get('dateFrom'),
-                    dateTo: formData.get('dateTo'),
-                    workingDays: parseInt(formData.get('workingDays') as string),
-                    t1Reexam: formData.get('t1Reexam') === 'yes',
-                    t1Subjects: formData.get('t1Subjects'),
-                    t2Reexam: formData.get('t2Reexam') === 'yes',
-                    t2Subjects: formData.get('t2Subjects'),
-                    studentContact: formData.get('studentContact'),
-                    parentContact: formData.get('parentContact'),
-                    medicalCertificate: medicalCertificateUrl,
-                    opdIpdSlip: opdIpdSlipUrl,
-                    dischargeSlip: dischargeSlipUrl,
-                    otherReports: otherReportUrls,
-                }),
+                body: formData,
             });
 
-            if (response.ok) {
-                toast.success('Medical report submitted successfully');
-                router.push('/dashboard');
-            } else {
-                const data = await response.json();
-                throw new Error(data.error);
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to submit report');
             }
+
+            toast.success('Report submitted successfully');
+            formElement.reset();
+            router.push('/my-reports');
         } catch (error) {
-            console.error('Submission error:', error);
-            toast.error('Failed to submit medical report');
+            console.error('Submit error:', error);
+            toast.error(error instanceof Error ? error.message : 'Failed to submit report');
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl mx-auto p-6">
-            <h2 className="text-2xl font-bold text-center">Medical Report Submission</h2>
-
-            {/* Student Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Parent&apos;s Name</label>
-                    <input
-                        type="text"
-                        name="parentName"
+                    <label className="block text-sm font-medium text-gray-700">Date of Absence</label>
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label className="text-sm text-gray-500">From</label>
+                            <Input
+                                type="date"
+                                name="dateFrom"
+                                required
+                                className="mt-1"
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <label className="text-sm text-gray-500">To</label>
+                            <Input
+                                type="date"
+                                name="dateTo"
+                                required
+                                className="mt-1"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Disease/Reason</label>
+                    <Textarea
+                        name="reason"
                         required
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        className="mt-1"
+                        placeholder="Describe your medical condition"
                     />
                 </div>
 
-                {/* Add all other form fields similarly */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Doctor Details</label>
+                    <Input
+                        name="doctorName"
+                        required
+                        className="mt-1"
+                        placeholder="Doctor's Name"
+                    />
+                    <Input
+                        name="doctorAddress"
+                        required
+                        className="mt-1"
+                        placeholder="Hospital/Clinic Address"
+                    />
+                </div>
 
-                {/* File Uploads */}
-                <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700">Medical Certificate</label>
-                    <input
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Upload Documents</label>
+                    <Input
                         type="file"
-                        required
+                        name="files"
+                        multiple
                         accept=".pdf,.jpg,.jpeg,.png"
-                        onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                                setFiles(prev => ({ ...prev, medicalCertificate: file }));
-                            }
-                        }}
-                        className="mt-1 block w-full"
+                        className="mt-1"
+                        required
                     />
+                    <p className="text-sm text-gray-500 mt-1">
+                        Upload medical certificate and other relevant documents (PDF, JPG, PNG)
+                    </p>
                 </div>
-
-                {/* Add other file upload fields similarly */}
             </div>
 
-            <button
+            <Button
                 type="submit"
+                className="w-full"
                 disabled={isLoading}
-                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
             >
                 {isLoading ? 'Submitting...' : 'Submit Report'}
-            </button>
+            </Button>
         </form>
     );
 } 

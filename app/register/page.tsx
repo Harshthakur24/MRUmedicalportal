@@ -6,9 +6,69 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Link from "next/link"
 import Image from "next/image"
 import { useState } from "react"
+import { useRouter } from 'next/navigation';
+import { toast } from 'react-hot-toast';
 
 export default function RegisterPage() {
-    const [isLoading, setIsLoading] = useState(false)
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        rollNumber: '',
+        department: '',
+        year: '',
+    });
+    const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoading(true);
+
+        try {
+            // Validate form data
+            if (!formData.name || !formData.email || !formData.password ||
+                !formData.rollNumber || !formData.department || !formData.year) {
+                toast.error('All fields are required');
+                return;
+            }
+
+            if (formData.password !== formData.confirmPassword) {
+                toast.error('Passwords do not match');
+                return;
+            }
+
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                toast.success('Registration successful! Please login.');
+                router.push('/login');
+            } else {
+                toast.error(data.error || 'Registration failed');
+            }
+        } catch (error) {
+            console.error('Registration error:', error);
+            toast.error('Something went wrong during registration');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormData(prev => ({
+            ...prev,
+            [e.target.id]: e.target.value
+        }));
+    };
 
     return (
         <div className="min-h-screen flex flex-col">
@@ -23,28 +83,18 @@ export default function RegisterPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <form className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-700" htmlFor="firstName">
-                                        First Name
-                                    </label>
-                                    <Input
-                                        id="firstName"
-                                        placeholder="First Name"
-                                        className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#004a7c]"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-700" htmlFor="lastName">
-                                        Last Name
-                                    </label>
-                                    <Input
-                                        id="lastName"
-                                        placeholder="Last Name"
-                                        className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#004a7c]"
-                                    />
-                                </div>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700" htmlFor="name">
+                                    Full Name
+                                </label>
+                                <Input
+                                    id="name"
+                                    placeholder="Enter your full name"
+                                    className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#004a7c]"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-gray-700" htmlFor="email">
@@ -55,16 +105,20 @@ export default function RegisterPage() {
                                     type="email"
                                     placeholder="Enter your email"
                                     className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#004a7c]"
+                                    value={formData.email}
+                                    onChange={handleChange}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700" htmlFor="studentId">
+                                <label className="text-sm font-medium text-gray-700" htmlFor="rollNumber">
                                     Student ID
                                 </label>
                                 <Input
-                                    id="studentId"
+                                    id="rollNumber"
                                     placeholder="Enter your student ID"
                                     className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#004a7c]"
+                                    value={formData.rollNumber}
+                                    onChange={handleChange}
                                 />
                             </div>
                             <div className="space-y-2">
@@ -76,6 +130,8 @@ export default function RegisterPage() {
                                     type="password"
                                     placeholder="Create a password"
                                     className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#004a7c]"
+                                    value={formData.password}
+                                    onChange={handleChange}
                                 />
                             </div>
                             <div className="space-y-2">
@@ -87,6 +143,33 @@ export default function RegisterPage() {
                                     type="password"
                                     placeholder="Confirm your password"
                                     className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#004a7c]"
+                                    value={formData.confirmPassword}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700" htmlFor="department">
+                                    Department
+                                </label>
+                                <Input
+                                    id="department"
+                                    placeholder="Enter your department"
+                                    className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#004a7c]"
+                                    value={formData.department}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700" htmlFor="year">
+                                    Year
+                                </label>
+                                <Input
+                                    id="year"
+                                    type="number"
+                                    placeholder="Enter your year"
+                                    className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#004a7c]"
+                                    value={formData.year}
+                                    onChange={handleChange}
                                 />
                             </div>
                             <div className="flex items-center space-x-2">

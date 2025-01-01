@@ -1,15 +1,14 @@
-import "next-auth"
+import { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
   interface User {
-    id: string
-    name: string
-    email: string
-    role: string
-    rollNumber?: string
+    role?: string
   }
   
   interface Session {
-    user: User
+    user: {
+      id: string
+      role: string
+    } & DefaultSession["user"]
   }
 } 

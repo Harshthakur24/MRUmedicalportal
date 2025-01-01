@@ -1,19 +1,23 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
-import bcrypt from 'bcrypt';
-import { generateJWTToken } from '@/lib/auth';
+import { sendPasswordResetEmail } from '@/lib/email';
+import { generateToken } from '@/lib/auth';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
-    const { email, password } = req.body;
+    const { email } = req.body;
     try {
       const student = await prisma.student.findUnique({ where: { email } });
-      if (!student || !(await bcrypt.compare(password, student.password))) {
-        return res.status(401).json({ error: 'Invalid credentials' });
+      if (!student) {
+        return res.status(400).json({ error: 'Invalid email' });
       }
-
-      const token = generateJWTToken({ id: student.id, email: student.email });
-      res.status(200).json({ token });
+      const token = generateToken();
+      await prisma.student.update({
+        where: { id: student.id },
+        data: { resetPasswordToken: token },
+      });
+      await sendPasswordResetEmail(student.email, token);
+      res.status(200).json({ message: 'Password reset email sent' });
     } catch (error) {
       res.status(500).json({ error: 'Internal server error' });
     }

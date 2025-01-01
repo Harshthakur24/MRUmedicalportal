@@ -7,82 +7,60 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id            String    @id @default(cuid())
-  name          String
-  email         String    @unique
-  emailVerified DateTime?
-  password      String
-  role          String    @default("STUDENT")
-  rollNumber    String?   @unique
-  department    String?
-  year          Int?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+model Student {
+  id                   String    @id @default(cuid())
+  name                 String
+  email                String    @unique
+  password             String
+  role                 Role      @default(STUDENT)
+  rollNumber           String    @unique
+  department           String
+  year                 Int
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  resetPasswordToken   String?
+  verificationToken    String?
+  emailVerified        DateTime?
+  resetPasswordExpires DateTime?
 
   // Relations
-  submissions     MedicalReport[] @relation("Submissions")
-  reviewedReports MedicalReport[] @relation("ReviewedBy")
+  submittedReports MedicalReport[] @relation("SubmittedReports")
+  reviewedReports  MedicalReport[] @relation("ReviewedReports")
 }
 
 model MedicalReport {
-  id        String   @id @default(cuid())
-  studentId String
-  student   User     @relation("Submissions", fields: [studentId], references: [id])
-  student2  student? @relation(fields: [studentId], references: [id], map: "MedicalReport_studentId_Student_fkey")
+  id                 String   @id @default(cuid())
+  studentId          String
+  student            Student  @relation("SubmittedReports", fields: [studentId], references: [id])
+  dateOfAbsence      DateTime
+  dateTo             DateTime
+  reason             String   @db.Text
+  doctorName         String
+  doctorAddress      String
+  medicalCertificate String
+  otherReports       String[]
+  status             Status   @default(PENDING)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  reviewerId         String?
+  reviewer           Student? @relation("ReviewedReports", fields: [reviewerId], references: [id])
 
-  // Student Details
-  name          String
-  parentName    String
-  rollNumber    String?
-  class         String
-  section       String
-  disease       String
-  doctorName    String
-  doctorAddress String
-
-  // Dates and Duration
-  dateFrom    DateTime
-  dateTo      DateTime
-  workingDays Int
-
-  // Re-exam Details
-  t1Reexam   Boolean @default(false)
-  t1Subjects String?
-  t2Reexam   Boolean @default(false)
-  t2Subjects String?
-
-  // Documents
-  medicalCertificate String // URL to stored file
-  opdIpdSlip         String? // URL to stored file
-  dischargeSlip      String? // URL to stored file
-  otherReports       String[] // URLs to stored files
-
-  // Contact Information
-  studentContact String
+  // New fields
+  parentName     String
   parentContact  String
+  studentContact String
+  class          String
+  section        String
+  disease        String
+  workingDays    Int
+  t1Reexam       Boolean @default(false)
+  t1Subjects     String?
+  t2Reexam       Boolean @default(false)
+  t2Subjects     String?
+  dischargeSlip  String?
+  opdIpdSlip     String?
 
-  // Status and Review
-  status     Status  @default(PENDING)
-  comments   String?
-  reviewerId String?
-  reviewer   User?   @relation("ReviewedBy", fields: [reviewerId], references: [id])
-
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  PCChecklist PCChecklist?
-}
-
-model PCChecklist {
-  id              String        @id @default(cuid())
-  medicalReport   MedicalReport @relation(fields: [medicalReportId], references: [id])
-  medicalReportId String        @unique
-
-  hasApplication        Boolean
-  hasMedicalCertificate Boolean
-  hasOpdIpdSlip         Boolean
-  hasDischargeSlip      Boolean
-  otherDocuments        String?
+  @@index([studentId])
 }
 
 enum Role {
@@ -95,23 +73,4 @@ enum Status {
   PENDING
   APPROVED
   REJECTED
-}
-
-enum DeanApproval {
-  REEXAM
-  ATTENDANCE
-  BOTH
-  REJECTED
-}
-
-model student {
-  id         String          @id @default(cuid())
-  name       String
-  rollNumber String          @unique
-  class      String
-  semester   String
-  email      String
-  reports    MedicalReport[]
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
 }

@@ -2,7 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Toaster } from 'react-hot-toast';
-import Providers from '@/components/Providers';
+import { AuthProvider } from "@/components/Providers";
 import Navbar from '@/components/Navbar';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -20,12 +20,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} bg-[#004a7c]/10`}>
-        <Providers>
+        <AuthProvider>
           <main className="min-h-screen">
             {children}
           </main>
           <Toaster position="top-center" />
-        </Providers>
+        </AuthProvider>
       </body>
     </html>
   );

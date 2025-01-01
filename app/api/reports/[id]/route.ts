@@ -1,33 +1,28 @@
-import { getServerSession } from 'next-auth';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
-export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession();
-    if (!session?.user || session.user.role !== 'HOD') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const { status, comments } = await req.json();
-    
-    const report = await prisma.medicalReport.update({
-      where: { id: params.id },
-      data: {
-        status,
-        comments,
-        reviewerId: session.user.id,
+    const report = await prisma.medicalReport.findUnique({
+      where: { 
+        id: params.id,
+        studentId: session.user.id
       },
     });
 
+    if (!report) {
+      return NextResponse.json({ error: 'Report not found' }, { status: 404 });
+    }
+
     return NextResponse.json(report);
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

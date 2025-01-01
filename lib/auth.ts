@@ -1,16 +1,15 @@
-import { NextAuthOptions } from "next-auth"
-import CredentialsProvider from "next-auth/providers/credentials"
-import { prisma } from "./prisma"
-import bcrypt from "bcryptjs"
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { prisma } from "./prisma";
+import bcrypt from "bcryptjs";
+import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-default-secret';
 
 export const authOptions: NextAuthOptions = {
-  pages: {
-    signIn: '/login',
-    error: '/auth/error',
-  },
-  session: {
-    strategy: "jwt",
-  },
+  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -20,34 +19,33 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error("Please enter your email and password");
+          return null;
         }
 
-        const user = await prisma.user.findUnique({
+        const student = await prisma.student.findUnique({
           where: {
             email: credentials.email
           }
         });
 
-        if (!user || !user?.password) {
-          throw new Error("No user found with this email");
+        if (!student) {
+          return null;
         }
 
-        const isPasswordValid = await bcrypt.compare(
+        const passwordMatch = await bcrypt.compare(
           credentials.password,
-          user.password
+          student.password
         );
 
-        if (!isPasswordValid) {
-          throw new Error("Invalid password");
+        if (!passwordMatch) {
+          return null;
         }
 
         return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          rollNumber: user.rollNumber || undefined,
+          id: student.id,
+          email: student.email,
+          name: student.name,
+          role: student.role,
         };
       }
     })
@@ -56,16 +54,25 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.role = user.role;
-        token.rollNumber = user.rollNumber;
       }
       return token;
     },
     async session({ session, token }) {
       if (session?.user) {
+        session.user.id = token.sub as string;
         session.user.role = token.role as string;
-        session.user.rollNumber = token.rollNumber as string | undefined;
       }
       return session;
-    },
-  },
-}; 
+    }
+  }
+};
+
+// For JWT tokens (login)
+export function generateJWTToken(payload: object): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
+}
+
+// For verification/reset tokens (email verification, password reset)
+export function generateToken(): string {
+  return crypto.randomBytes(32).toString('hex');
+} 
