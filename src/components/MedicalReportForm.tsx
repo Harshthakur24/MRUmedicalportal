@@ -165,21 +165,22 @@ export default function MedicalReportForm() {
                                 defaultValue={session?.user?.rollNumber || ''}
                             />
                         </div>
-                        <div>
-                            <Label>Student Contact</Label>
-                            <Input
-                                {...register('studentContact')}
-                                required
-                                placeholder="Enter your contact number"
-                                type="tel"
-                            />
-                        </div>
+
                         <div>
                             <Label>Parent&apos;s Contact</Label>
                             <Input
                                 {...register('parentContact')}
                                 required
                                 placeholder="Enter parent's contact"
+                                type="tel"
+                            />
+                        </div>
+                        <div>
+                            <Label>Student Contact</Label>
+                            <Input
+                                {...register('studentContact')}
+                                required
+                                placeholder="Enter your contact number"
                                 type="tel"
                             />
                         </div>
