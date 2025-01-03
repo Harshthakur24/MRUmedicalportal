@@ -39,8 +39,6 @@ export default function LoginPage() {
                 redirect: false,
             });
 
-            console.log("Sign in result:", result); // Debug log
-
             if (result?.error) {
                 toast.error('Invalid email or password');
             } else if (result?.ok) {
@@ -48,7 +46,7 @@ export default function LoginPage() {
                 // Let the useEffect handle the redirect
             }
         } catch (error) {
-            console.error('Login error:', error); // Debug log
+            console.error('Login error:', error);
             toast.error('Failed to login');
         } finally {
             setIsLoading(false);
@@ -56,11 +54,13 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col bg-[#004a7c]/10">
             <div className="flex-1 flex items-center justify-center px-4 py-12">
-                <Card className="w-full max-w-md">
+                <Card className="w-full max-w-md bg-white/80 backdrop-blur-sm shadow-xl border-2 border-[#004a7c]/10">
                     <CardHeader className="space-y-1">
-                        <CardTitle className="text-2xl text-center">Login</CardTitle>
+                        <CardTitle className="text-2xl text-center text-[#004a7c]">
+                            Welcome Back
+                        </CardTitle>
                         <CardDescription className="text-center">
                             Enter your credentials to access your account
                         </CardDescription>
@@ -74,6 +74,7 @@ export default function LoginPage() {
                                     placeholder="Email"
                                     required
                                     disabled={isLoading}
+                                    className="border-[#004a7c]/20 focus:border-[#004a7c] focus:ring-[#004a7c]"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -83,6 +84,7 @@ export default function LoginPage() {
                                     placeholder="Password"
                                     required
                                     disabled={isLoading}
+                                    className="border-[#004a7c]/20 focus:border-[#004a7c] focus:ring-[#004a7c]"
                                 />
                             </div>
                             <div className="flex items-center justify-between">
@@ -92,30 +94,36 @@ export default function LoginPage() {
                                         id="remember"
                                         checked={rememberMe}
                                         onChange={(e) => setRememberMe(e.target.checked)}
-                                        className="rounded border-gray-300"
+                                        className="rounded border-[#004a7c]/20 text-[#004a7c] focus:ring-[#004a7c]"
                                     />
-                                    <label htmlFor="remember" className="text-sm">
+                                    <label htmlFor="remember" className="text-sm text-gray-600">
                                         Remember me
                                     </label>
                                 </div>
-                                <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
+                                <Link
+                                    href="/forgot-password"
+                                    className="text-sm text-[#004a7c] hover:text-[#004a7c]/80 hover:underline"
+                                >
                                     Forgot password?
                                 </Link>
                             </div>
                             <Button
                                 type="submit"
-                                className="w-full"
+                                className="w-full bg-[#004a7c] hover:bg-[#004a7c]/90"
                                 disabled={isLoading}
                             >
                                 {isLoading ? 'Logging in...' : 'Login'}
                             </Button>
+                            <div className="mt-4 text-center text-sm text-gray-600">
+                                Don&apos;t have an account?{' '}
+                                <Link
+                                    href="/register"
+                                    className="text-[#004a7c] hover:text-[#004a7c]/80 hover:underline"
+                                >
+                                    Register
+                                </Link>
+                            </div>
                         </form>
-                        <div className="mt-4 text-center text-sm">
-                            Don&apos;t have an account?{' '}
-                            <Link href="/register" className="text-blue-600 hover:underline">
-                                Register
-                            </Link>
-                        </div>
                     </CardContent>
                 </Card>
             </div>

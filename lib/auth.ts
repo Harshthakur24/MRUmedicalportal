@@ -2,7 +2,7 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "./prisma";
-import { compare } from "bcryptjs";
+import bcrypt from 'bcryptjs';
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -16,45 +16,52 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         try {
           if (!credentials?.email || !credentials?.password) {
-            throw new Error("Missing credentials");
+            console.log("Missing credentials");
+            return null;
           }
 
           const student = await prisma.student.findUnique({
             where: { email: credentials.email.toLowerCase() },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              password: true,
+              role: true,
+            },
           });
 
-          if (!student || !student.password) {
-            throw new Error("Invalid credentials");
+          if (!student) {
+            console.log("Student not found");
+            return null;
           }
 
-          const isValid = await compare(credentials.password, student.password);
-          if (!isValid) {
-            throw new Error("Invalid credentials");
+          const passwordMatch = await bcrypt.compare(
+            credentials.password,
+            student.password
+          );
+
+          if (!passwordMatch) {
+            console.log("Password doesn't match");
+            return null;
           }
 
-          // Return the user object
-          return {
-            id: student.id,
-            email: student.email,
-            name: student.name,
-            role: student.role,
-          };
+          // Return user without password
+          const { password, ...userWithoutPass } = student;
+          return userWithoutPass;
         } catch (error) {
-          console.error("Authentication error:", error);
+          console.error("Auth error:", error);
           return null;
         }
       }
     })
   ],
-  pages: {
-    signIn: '/login',
-    error: '/login',
-  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = user.role;
         token.id = user.id;
+        token.email = user.email;
+        token.role = user.role;
       }
       return token;
     },
@@ -66,8 +73,13 @@ export const authOptions: NextAuthOptions = {
       return session;
     }
   },
+  pages: {
+    signIn: '/login',
+    error: '/login',
+  },
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   debug: process.env.NODE_ENV === "development",
   secret: process.env.NEXTAUTH_SECRET,
