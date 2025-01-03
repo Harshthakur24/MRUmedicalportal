@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     // Add detailed logging
     console.log('Session:', session);
     
-    if (!session?.user?.id) {
+    if (!session?.student?.id) {
       return NextResponse.json({ 
         error: 'Not authenticated',
         sessionDetails: process.env.NODE_ENV === 'development' ? session : undefined
@@ -22,14 +22,14 @@ export async function POST(req: NextRequest) {
     
     // Verify student exists first
     const student = await prisma.student.findUnique({
-      where: { id: session.user.id }
+      where: { id: session.student.id }
     });
 
 
     if (!student) {
       return NextResponse.json({ 
         error: 'Student not found',
-        userId: session.user.id, // Add this for debugging
+        userId: session.student.id, // Add this for debugging
         details: process.env.NODE_ENV === 'development' ? 'No student found with the provided ID' : undefined
       }, { status: 404 });
     }
