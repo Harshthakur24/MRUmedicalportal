@@ -41,7 +41,7 @@ export default function MedicalReportForm() {
 
             toast.success('Report submitted successfully');
             formElement.reset();
-            router.push('/my-reports');
+            router.push('/');
         } catch (error) {
             console.error('Submit error:', error);
             toast.error(error instanceof Error ? error.message : 'Failed to submit report');

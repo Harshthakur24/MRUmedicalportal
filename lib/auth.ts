@@ -3,6 +3,7 @@ import { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "./prisma";
 import { compare } from "bcryptjs";
+import jwt from 'jsonwebtoken';
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -69,3 +70,14 @@ export const authOptions: AuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === "development",
 }; 
+
+export const generateToken = (payload: any): string => {
+  return jwt.sign(
+    payload,
+    process.env.JWT_SECRET || 'fallback-secret',
+    { expiresIn: '24h' }
+  );
+};
+
+// Alias for generateToken to maintain backward compatibility
+export const generateJWTToken = generateToken; 

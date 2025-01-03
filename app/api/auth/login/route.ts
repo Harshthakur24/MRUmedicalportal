@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { generateToken } from '@/lib/auth';
 
 export async function POST(req: Request) {
   try {
@@ -16,12 +16,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // Find user
-    const user = await prisma.user.findUnique({
+    // Find student
+    const student = await prisma.student.findUnique({
       where: { email: email.toLowerCase() },
     });
 
-    if (!user) {
+    if (!student) {
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     }
 
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    const isValidPassword = await bcrypt.compare(password, student.password);
     if (!isValidPassword) {
       return NextResponse.json(
         { error: 'Invalid credentials' },
@@ -37,27 +37,23 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create JWT token
-    const token = jwt.sign(
-      { 
-        userId: user.id,
-        email: user.email,
-        role: user.role 
-      },
-      process.env.JWT_SECRET || 'fallback-secret',
-      { expiresIn: '24h' }
-    );
+    // Create JWT token using the utility function
+    const token = generateToken({ 
+      studentId: student.id,
+      email: student.email,
+      role: student.role 
+    });
 
-    // Return success response with token and user data
+    // Return success response with token and student data
     return NextResponse.json({
       success: true,
       token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        rollNumber: user.rollNumber,
+      student: {
+        id: student.id,
+        name: student.name,
+        email: student.email,
+        role: student.role,
+        rollNumber: student.rollNumber,
       }
     });
 

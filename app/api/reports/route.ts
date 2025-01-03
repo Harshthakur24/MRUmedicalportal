@@ -25,9 +25,6 @@ export async function POST(req: NextRequest) {
       where: { id: session.user.id }
     });
 
-    // Add detailed logging
-    console.log('Looking for student with ID:', session.user.id);
-    console.log('Found student:', student);
 
     if (!student) {
       return NextResponse.json({ 
