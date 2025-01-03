@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { Loader2 } from "lucide-react";
 import { Search, Filter, RefreshCw } from 'lucide-react';
 
 interface Report {
@@ -45,8 +46,8 @@ export default function ReportsPage() {
 
     if (isLoading) {
         return (
-            <div className="flex justify-center items-center min-h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <div className="min-h-screen flex items-center justify-center">
+                <Loader2 className="h-10 w-10 animate-spin text-[#004a7c]" />
             </div>
         );
     }

@@ -7,6 +7,7 @@ import {
     Phone, UserCircle, Building, Stethoscope, CalendarDays, BookOpen,
     Download, Eye
 } from 'lucide-react';
+import { Loader2 } from "lucide-react";
 import { toast } from 'sonner';
 
 interface Report {
@@ -101,8 +102,8 @@ export default function ReportReviewPage() {
 
     if (isLoading) {
         return (
-            <div className="flex justify-center items-center min-h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <div className="min-h-screen flex items-center justify-center">
+                <Loader2 className="h-10 w-10 animate-spin text-[#004a7c]" />
             </div>
         );
     }
@@ -124,7 +125,7 @@ export default function ReportReviewPage() {
 
                 <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                     <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-500 to-purple-600">
-                        <div className="flex justify-between items-start">
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                             <div>
                                 <h1 className="text-4xl font-bold text-white">Medical Report Review</h1>
                                 <p className="text-indigo-100 mt-1">Review and process the medical report submission</p>
@@ -138,12 +139,12 @@ export default function ReportReviewPage() {
                                 </div>
                             </div>
                             {report.medicalCertificate && (
-                                <div className="flex space-x-2">
+                                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                                     <a
                                         href={report.medicalCertificate}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-white/20 hover:bg-white/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 transition-colors"
+                                        className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-white/20 hover:bg-white/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 transition-colors"
                                     >
                                         <Eye className="w-4 h-4 mr-2" />
                                         View Certificate
@@ -151,7 +152,7 @@ export default function ReportReviewPage() {
                                     <a
                                         href={report.medicalCertificate}
                                         download
-                                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-white/20 hover:bg-white/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 transition-colors"
+                                        className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-white/20 hover:bg-white/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 transition-colors"
                                     >
                                         <Download className="w-4 h-4 mr-2" />
                                         Download

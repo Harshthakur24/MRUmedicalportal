@@ -42,7 +42,7 @@ export default function DashboardPage() {
     if (status === "loading" || loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-[#004a7c]" />
+                <Loader2 className="h-10 w-10 animate-spin text-[#004a7c]" />
             </div>
         );
     }
