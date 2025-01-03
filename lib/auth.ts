@@ -15,31 +15,40 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error("Missing credentials");
+          return null;
         }
 
-        const student = await prisma.student.findUnique({
-          where: { email: credentials.email.toLowerCase() },
-        });
+        try {
+          const student = await prisma.student.findUnique({
+            where: { email: credentials.email.toLowerCase() },
+          });
 
-        if (!student) {
-          throw new Error("Invalid credentials");
+          if (!student || !student.password) {
+            return null;
+          }
+
+          const isValid = await compare(credentials.password, student.password);
+          if (!isValid) {
+            return null;
+          }
+
+          return {
+            id: student.id,
+            email: student.email,
+            name: student.name,
+            role: student.role,
+          };
+        } catch (error) {
+          console.error("Auth error:", error);
+          return null;
         }
-
-        const isValid = await compare(credentials.password, student.password);
-        if (!isValid) {
-          throw new Error("Invalid credentials");
-        }
-
-        return {
-          id: student.id,
-          email: student.email,
-          name: student.name,
-          role: student.role,
-        };
       }
     })
   ],
+  pages: {
+    signIn: '/login',
+    error: '/login',
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -56,14 +65,10 @@ export const authOptions: NextAuthOptions = {
       return session;
     }
   },
-  pages: {
-    signIn: '/login',
-    error: '/login',
-  },
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === "development",
+  secret: process.env.NEXTAUTH_SECRET,
 }; 
