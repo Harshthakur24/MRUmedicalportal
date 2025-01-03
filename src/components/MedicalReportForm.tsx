@@ -13,6 +13,7 @@ import { useSession } from 'next-auth/react';
 
 type FormData = {
     studentName: string;
+    rollNumber: string;
     dateOfAbsence: string;
     dateTo: string;
     reason: string;
@@ -32,24 +33,11 @@ type FormData = {
 };
 
 export default function MedicalReportForm() {
-    const { data: session, status } = useSession({
-        required: true,
-        onUnauthenticated() {
-            router.push('/auth/login');
-        },
-    });
+    const { data: session } = useSession();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const { register, handleSubmit } = useForm<FormData>();
     const [file, setFile] = useState<File | null>(null);
-
-    if (status === 'loading') {
-        return <div>Loading...</div>;
-    }
-
-    if (!session?.user) {
-        return null;
-    }
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -67,48 +55,55 @@ export default function MedicalReportForm() {
         try {
             if (!file) {
                 toast.error('Please upload a medical certificate');
+                setLoading(false);
                 return;
             }
 
             // Convert file to base64
             const fileBase64 = await new Promise<string>((resolve, reject) => {
                 const reader = new FileReader();
+                reader.readAsDataURL(file);
                 reader.onload = () => {
                     try {
                         const base64String = reader.result as string;
-                        const base64 = base64String.split(',')[1];
-                        resolve(base64);
+                        if (!base64String) {
+                            throw new Error('Failed to read file');
+                        }
+                        const base64Data = base64String.split(',')[1];
+                        if (!base64Data) {
+                            throw new Error('Invalid file format');
+                        }
+                        resolve(base64Data);
                     } catch (e) {
-                        reject(new Error('Failed to process file'));
+                        reject(e);
                     }
                 };
                 reader.onerror = () => reject(new Error('Failed to read file'));
-                reader.readAsDataURL(file);
             });
 
-            // Prepare the request payload
             const requestData = {
-                studentName: data.studentName,
-                dateOfAbsence: data.dateOfAbsence,
-                dateTo: data.dateTo,
-                reason: data.disease,
-                doctorName: data.doctorName,
-                doctorAddress: data.doctorAddress,
-                parentName: data.parentName,
-                parentContact: data.parentContact,
-                studentContact: data.studentContact,
-                className: data.className,
-                section: data.section,
-                disease: data.disease,
-                workingDays: Number(data.workingDays),
+                studentName: String(data.studentName || ''),
+                rollNumber: String(data.rollNumber || ''),
+                dateOfAbsence: String(data.dateOfAbsence || ''),
+                dateTo: String(data.dateTo || ''),
+                reason: String(data.reason || ''),
+                doctorName: String(data.doctorName || ''),
+                doctorAddress: String(data.doctorAddress || ''),
+                parentName: String(data.parentName || ''),
+                parentContact: String(data.parentContact || ''),
+                studentContact: String(data.studentContact || ''),
+                className: String(data.className || ''),
+                section: String(data.section || ''),
+                disease: String(data.disease || ''),
+                workingDays: Number(data.workingDays) || 0,
                 t1Reexam: Boolean(data.t1Reexam),
-                t1Subjects: data.t1Subjects || '',
+                t1Subjects: String(data.t1Subjects || ''),
                 t2Reexam: Boolean(data.t2Reexam),
-                t2Subjects: data.t2Subjects || '',
+                t2Subjects: String(data.t2Subjects || ''),
                 medicalCertificate: {
                     data: fileBase64,
-                    filename: file.name,
-                    contentType: file.type,
+                    filename: String(file.name),
+                    contentType: String(file.type)
                 }
             };
 
@@ -120,13 +115,14 @@ export default function MedicalReportForm() {
                 body: JSON.stringify(requestData)
             });
 
+            const responseData = await response.json();
+
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to submit report');
+                throw new Error(responseData.error || 'Failed to submit report');
             }
 
             toast.success('Report submitted successfully');
-            router.push('/');
+            router.push('/dashboard/reports');
         } catch (error) {
             console.error('Submit error:', error);
             toast.error(error instanceof Error ? error.message : 'Failed to submit report');
@@ -137,7 +133,6 @@ export default function MedicalReportForm() {
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-
             <div className="space-y-4">
                 {/* Personal Information */}
                 <div>
@@ -164,9 +159,19 @@ export default function MedicalReportForm() {
                         <div>
                             <Label>Roll Number</Label>
                             <Input
-                                name="rollNumber"
+                                {...register('rollNumber')}
                                 required
                                 placeholder="Enter your roll number"
+                                defaultValue={session?.user?.rollNumber || ''}
+                            />
+                        </div>
+                        <div>
+                            <Label>Student Contact</Label>
+                            <Input
+                                {...register('studentContact')}
+                                required
+                                placeholder="Enter your contact number"
+                                type="tel"
                             />
                         </div>
                         <div>
@@ -175,6 +180,7 @@ export default function MedicalReportForm() {
                                 {...register('parentContact')}
                                 required
                                 placeholder="Enter parent's contact"
+                                type="tel"
                             />
                         </div>
                         <div>
@@ -182,7 +188,7 @@ export default function MedicalReportForm() {
                             <Input
                                 {...register('className')}
                                 required
-                                placeholder="Enter your class"
+                                placeholder="Enter your class (e.g., CSE)"
                             />
                         </div>
                         <div>
@@ -190,7 +196,7 @@ export default function MedicalReportForm() {
                             <Input
                                 {...register('section')}
                                 required
-                                placeholder="Enter your section"
+                                placeholder="Enter your section (e.g., A)"
                             />
                         </div>
                     </div>
@@ -325,14 +331,12 @@ export default function MedicalReportForm() {
                         </p>
                     </div>
                 </div>
-
             </div>
 
             <Button
                 type="submit"
                 disabled={loading}
                 className="w-full bg-[#004a7c] hover:bg-[#003a61] text-white h-10"
-
             >
                 {loading ? 'Submitting...' : 'Submit Report'}
             </Button>
