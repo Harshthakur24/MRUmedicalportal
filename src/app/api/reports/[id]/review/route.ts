@@ -14,7 +14,9 @@ export async function POST(
     request: NextRequest,
     { params }: { params: { id: string } }
 ): Promise<Response> {
-    if (!params?.id) {
+    const { id } = params;
+
+    if (!id) {
         return Response.json(
             { error: 'Report ID is required' },
             { status: 400 }
@@ -34,7 +36,7 @@ export async function POST(
 
         const updatedReport = await prisma.medicalReport.update({
             where: { 
-                id: params.id 
+                id: id 
             },
             data: {
                 status: data.status,
@@ -49,7 +51,7 @@ export async function POST(
             report: updatedReport
         });
 
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error updating report:', error);
         return Response.json(
             { error: 'Failed to update report status' },

@@ -48,6 +48,7 @@ export default function ReportReviewPage() {
                 const response = await fetch(`/api/reports/${params.id}`);
                 if (!response.ok) throw new Error('Failed to fetch report');
                 const data = await response.json();
+                console.log(data);
                 setReport(data);
             } catch (error) {
                 toast.error('Failed to fetch report details');
