@@ -19,19 +19,19 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          const user = await prisma.student.findUnique({
+          const student = await prisma.student.findUnique({
             where: {
               email: credentials.email.toLowerCase(),
             },
           });
 
-          if (!user) {
-            throw new Error("No user found with this email");
+          if (!student) {
+            throw new Error("No student found with this email");
           }
 
           const passwordMatch = await bcrypt.compare(
             credentials.password,
-            user.password
+            student.password
           );
 
           if (!passwordMatch) {
@@ -39,10 +39,10 @@ export const authOptions: NextAuthOptions = {
           }
 
           return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
+            id: student.id,
+            email: student.email,
+            name: student.name,
+            role: student.role,
           };
         } catch (error) {
           console.error("Authentication error:", error);
@@ -64,11 +64,15 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id;
-        session.user.role = token.role;
-      }
-      return session;
+      return {
+        ...session,
+        student: {
+          id: token.id as string,
+          email: token.email as string,
+          name: token.name as string,
+          role: token.role as string,
+        }
+      };
     }
   },
   pages: {

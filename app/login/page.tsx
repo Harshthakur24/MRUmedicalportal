@@ -1,7 +1,7 @@
 'use client';
 
 import { signIn, useSession } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
@@ -14,12 +14,10 @@ export default function LoginPage() {
     const [rememberMe, setRememberMe] = useState(false);
     const router = useRouter();
     const { data: session, status } = useSession();
-    const searchParams = useSearchParams();
-    const error = searchParams?.get('error');
 
     useEffect(() => {
-        if (session?.user) {
-            const destination = session.user.role === 'HOD' ? '/hod/reports' : '/submit-report';
+        if (session?.student) {
+            const destination = session.student.role === 'HOD' ? '/hod/reports' : '/submit-report';
             router.push(destination);
         }
     }, [session, router]);
