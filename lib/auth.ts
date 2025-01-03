@@ -14,24 +14,25 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
-
         try {
+          if (!credentials?.email || !credentials?.password) {
+            throw new Error("Missing credentials");
+          }
+
           const student = await prisma.student.findUnique({
             where: { email: credentials.email.toLowerCase() },
           });
 
           if (!student || !student.password) {
-            return null;
+            throw new Error("Invalid credentials");
           }
 
           const isValid = await compare(credentials.password, student.password);
           if (!isValid) {
-            return null;
+            throw new Error("Invalid credentials");
           }
 
+          // Return the user object
           return {
             id: student.id,
             email: student.email,
@@ -39,7 +40,7 @@ export const authOptions: NextAuthOptions = {
             role: student.role,
           };
         } catch (error) {
-          console.error("Auth error:", error);
+          console.error("Authentication error:", error);
           return null;
         }
       }
@@ -67,7 +68,6 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   debug: process.env.NODE_ENV === "development",
   secret: process.env.NEXTAUTH_SECRET,

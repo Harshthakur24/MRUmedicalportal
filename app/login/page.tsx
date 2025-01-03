@@ -1,13 +1,13 @@
 'use client';
 
+import { signIn, useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { signIn, useSession } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { toast } from "react-hot-toast";
-import { useState, useEffect } from "react";
 
 export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false);
@@ -16,16 +16,6 @@ export default function LoginPage() {
     const { data: session } = useSession();
     const searchParams = useSearchParams();
     const error = searchParams?.get('error');
-
-    useEffect(() => {
-        if (error) {
-            toast.error(
-                error === 'CredentialsSignin'
-                    ? 'Invalid email or password'
-                    : 'An error occurred during login'
-            );
-        }
-    }, [error]);
 
     useEffect(() => {
         if (session?.user) {
@@ -47,20 +37,18 @@ export default function LoginPage() {
                 email,
                 password,
                 redirect: false,
-                callbackUrl: '/',
-                remember: rememberMe,
             });
 
+            console.log("Sign in result:", result); // Debug log
+
             if (result?.error) {
-                toast.error(
-                    result.error === 'CredentialsSignin'
-                        ? 'Invalid email or password'
-                        : result.error
-                );
+                toast.error('Invalid email or password');
             } else if (result?.ok) {
                 toast.success('Logged in successfully');
+                // Let the useEffect handle the redirect
             }
         } catch (error) {
+            console.error('Login error:', error); // Debug log
             toast.error('Failed to login');
         } finally {
             setIsLoading(false);
@@ -70,72 +58,64 @@ export default function LoginPage() {
     return (
         <div className="min-h-screen flex flex-col">
             <div className="flex-1 flex items-center justify-center px-4 py-12">
-                <Card className="w-full max-w-md bg-white/80 backdrop-blur-sm shadow-xl border-2 border-[#004a7c]/10">
-                    <CardHeader className="space-y-1 text-center">
-                        <CardTitle className="text-3xl font-bold text-[#004a7c]">Welcome Back</CardTitle>
-                        <CardDescription className="text-gray-600">
-                            Sign in to your account
+                <Card className="w-full max-w-md">
+                    <CardHeader className="space-y-1">
+                        <CardTitle className="text-2xl text-center">Login</CardTitle>
+                        <CardDescription className="text-center">
+                            Enter your credentials to access your account
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700" htmlFor="email">
-                                    Email
-                                </label>
                                 <Input
-                                    id="email"
-                                    name="email"
                                     type="email"
-                                    placeholder="Enter your email"
+                                    name="email"
+                                    placeholder="Email"
                                     required
-                                    className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#004a7c]"
+                                    disabled={isLoading}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700" htmlFor="password">
-                                    Password
-                                </label>
                                 <Input
-                                    id="password"
-                                    name="password"
                                     type="password"
-                                    placeholder="Enter your password"
+                                    name="password"
+                                    placeholder="Password"
                                     required
-                                    className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#004a7c]"
+                                    disabled={isLoading}
                                 />
                             </div>
                             <div className="flex items-center justify-between">
-                                <div className="flex items-center">
+                                <div className="flex items-center space-x-2">
                                     <input
                                         type="checkbox"
                                         id="remember"
                                         checked={rememberMe}
                                         onChange={(e) => setRememberMe(e.target.checked)}
-                                        className="h-4 w-4 rounded border-gray-300 text-[#004a7c] focus:ring-[#004a7c]"
+                                        className="rounded border-gray-300"
                                     />
-                                    <label htmlFor="remember" className="ml-2 text-sm text-gray-600">
+                                    <label htmlFor="remember" className="text-sm">
                                         Remember me
                                     </label>
                                 </div>
-                                <Link href="/forgot-password" className="text-sm text-[#004a7c] hover:underline">
+                                <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
                                     Forgot password?
                                 </Link>
                             </div>
                             <Button
                                 type="submit"
-                                className="w-full bg-[#004a7c] hover:bg-[#003a61] text-white py-2 rounded-md transition-colors"
+                                className="w-full"
                                 disabled={isLoading}
                             >
-                                {isLoading ? "Signing in..." : "Sign In"}
+                                {isLoading ? 'Logging in...' : 'Login'}
                             </Button>
-                            <div className="text-center text-sm text-gray-600">
-                                Don&apos;t have an account?{" "}
-                                <Link href="/register" className="text-[#004a7c] hover:underline">
-                                    Sign up
-                                </Link>
-                            </div>
                         </form>
+                        <div className="mt-4 text-center text-sm">
+                            Don&apos;t have an account?{' '}
+                            <Link href="/register" className="text-blue-600 hover:underline">
+                                Register
+                            </Link>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
