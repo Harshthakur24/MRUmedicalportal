@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { signIn, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useState, useEffect } from "react";
 
@@ -13,36 +13,56 @@ export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
     const router = useRouter();
-    const { data: session, status } = useSession();
+    const { data: session } = useSession();
+    const searchParams = useSearchParams();
+    const error = searchParams?.get('error');
 
+    useEffect(() => {
+        if (error) {
+            toast.error(
+                error === 'CredentialsSignin'
+                    ? 'Invalid email or password'
+                    : 'An error occurred during login'
+            );
+        }
+    }, [error]);
 
+    useEffect(() => {
+        if (session?.user) {
+            const destination = session.user.role === 'HOD' ? '/hod/reports' : '/submit-report';
+            router.push(destination);
+        }
+    }, [session, router]);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setIsLoading(true);
 
         const formData = new FormData(e.currentTarget);
+        const email = formData.get('email') as string;
+        const password = formData.get('password') as string;
 
         try {
             const result = await signIn('credentials', {
-                email: formData.get('email') as string,
-                password: formData.get('password') as string,
+                email,
+                password,
                 redirect: false,
+                callbackUrl: '/',
+                remember: rememberMe,
             });
 
             if (result?.error) {
-                toast.error(result.error);
-                setIsLoading(false);
-                return;
-            }
-
-            if (result?.ok) {
+                toast.error(
+                    result.error === 'CredentialsSignin'
+                        ? 'Invalid email or password'
+                        : result.error
+                );
+            } else if (result?.ok) {
                 toast.success('Logged in successfully');
-                router.push('/submit-report');
-                router.refresh();
             }
         } catch (error) {
             toast.error('Failed to login');
+        } finally {
             setIsLoading(false);
         }
     };
