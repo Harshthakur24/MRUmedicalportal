@@ -33,21 +33,25 @@ export default function LoginPage() {
         const password = formData.get('password') as string;
 
         try {
+            console.log('Attempting to sign in with:', { email });
+
             const result = await signIn('credentials', {
                 email,
                 password,
                 redirect: false,
             });
 
+            console.log('Sign in result:', result);
+
             if (result?.error) {
-                toast.error('Invalid email or password');
+                toast.error(result.error || 'Invalid email or password');
             } else if (result?.ok) {
                 toast.success('Logged in successfully');
-                // Let the useEffect handle the redirect
+                router.push('/submit-report');
             }
         } catch (error) {
             console.error('Login error:', error);
-            toast.error('Failed to login');
+            toast.error('An error occurred during login');
         } finally {
             setIsLoading(false);
         }

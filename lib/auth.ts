@@ -20,35 +20,49 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
+          // Debug log
+          console.log("Attempting login for email:", credentials.email);
+
           const student = await prisma.student.findUnique({
-            where: { email: credentials.email.toLowerCase() },
-            select: {
-              id: true,
-              email: true,
-              name: true,
-              password: true,
-              role: true,
+            where: { 
+              email: credentials.email.toLowerCase() 
             },
           });
 
+          // Debug log
+          console.log("Found student:", student ? "Yes" : "No");
+
           if (!student) {
-            console.log("Student not found");
+            console.log("No student found with this email");
             return null;
           }
 
-          const passwordMatch = await bcrypt.compare(
+          // Debug log
+          console.log("Comparing passwords...");
+          
+          const isPasswordValid = await bcrypt.compare(
             credentials.password,
             student.password
           );
 
-          if (!passwordMatch) {
-            console.log("Password doesn't match");
+          // Debug log
+          console.log("Password valid:", isPasswordValid);
+
+          if (!isPasswordValid) {
+            console.log("Password is invalid");
             return null;
           }
 
-          // Return user without password
-          const { password, ...userWithoutPass } = student;
-          return userWithoutPass;
+          // Debug log
+          console.log("Login successful, returning user");
+
+          return {
+            id: student.id,
+            email: student.email,
+            name: student.name,
+            role: student.role,
+          };
+
         } catch (error) {
           console.error("Auth error:", error);
           return null;
@@ -79,8 +93,7 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  debug: process.env.NODE_ENV === "development",
+  debug: true, // Enable debug mode
   secret: process.env.NEXTAUTH_SECRET,
 }; 
