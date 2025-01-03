@@ -1,70 +1,70 @@
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
 }
 
 model Student {
-  id                   String          @id @default(cuid())
-  name                 String
-  email                String          @unique
-  password             String
-  role                 Role            @default(STUDENT)
-  rollNumber           String          @unique
-  department           String
-  year                 Int
-  createdAt            DateTime        @default(now())
-  updatedAt            DateTime        @updatedAt
-  resetPasswordToken   String?
-  verificationToken    String?
-  emailVerified        DateTime?
-  resetPasswordExpires DateTime?
-  submittedReports     MedicalReport[] @relation("SubmittedReports")
-  reviewedReports      MedicalReport[] @relation("ReviewedReports")
+    id                   String          @id @default(cuid())
+    name                 String
+    email                String          @unique
+    password             String
+    role                 Role            @default(STUDENT)
+    rollNumber           String          @unique
+    department           String
+    year                 Int
+    createdAt            DateTime        @default(now())
+    updatedAt            DateTime        @updatedAt
+    resetPasswordToken   String?
+    verificationToken    String?
+    emailVerified        DateTime?
+    resetPasswordExpires DateTime?
+    submittedReports     MedicalReport[] @relation("SubmittedReports")
+    reviewedReports      MedicalReport[] @relation("ReviewedReports")
 }
 
 model MedicalReport {
-  id                 String       @id @default(cuid())
-  studentId          String
-  student            Student      @relation("SubmittedReports", fields: [studentId], references: [id])
-  studentName        String
-  rollNumber         String
-  dateOfAbsence      DateTime
-  dateTo             DateTime
-  reason             String
-  doctorName         String
-  doctorAddress      String
-  medicalCertificate String
-  status             ReportStatus @default(PENDING)
-  otherReports       String[]
-  parentName         String
-  parentContact      String
-  studentContact     String
-  className          String
-  section            String
-  disease            String
-  workingDays        Int
-  t1Reexam           Boolean      @default(false)
-  t1Subjects         String?
-  t2Reexam           Boolean      @default(false)
-  t2Subjects         String?
-  submissionDate     DateTime     @default(now())
-  reviewerId         String?
-  reviewer           Student?     @relation("ReviewedReports", fields: [reviewerId], references: [id])
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+    id                 String       @id @default(cuid())
+    studentId          String
+    student            Student      @relation("SubmittedReports", fields: [studentId], references: [id])
+    studentName        String
+    rollNumber         String
+    dateOfAbsence      DateTime
+    dateTo             DateTime
+    reason             String
+    doctorName         String
+    doctorAddress      String
+    medicalCertificate String
+    status             ReportStatus @default(PENDING)
+    otherReports       String[]
+    parentName         String
+    parentContact      String
+    studentContact     String
+    className          String
+    section            String
+    disease            String
+    workingDays        Int
+    t1Reexam           Boolean      @default(false)
+    t1Subjects         String?
+    t2Reexam           Boolean      @default(false)
+    t2Subjects         String?
+    submissionDate     DateTime     @default(now())
+    reviewerId         String?
+    reviewer           Student?     @relation("ReviewedReports", fields: [reviewerId], references: [id])
+    createdAt          DateTime     @default(now())
+    updatedAt          DateTime     @updatedAt
 }
 
 enum Role {
-  ADMIN
-  HOD
-  STUDENT
+    ADMIN
+    HOD
+    STUDENT
 }
 
 enum ReportStatus {
-  PENDING
-  REJECTED
+    PENDING
+    REJECTED
 }
