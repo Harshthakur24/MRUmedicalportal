@@ -4,6 +4,29 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "./prisma";
 import bcrypt from 'bcryptjs';
 
+declare module "next-auth" {
+  interface User {
+    role: string;
+    id: string;
+  }
+  
+  interface Session {
+    student: {
+      id: string;
+      email: string;
+      name: string;
+      role: string;
+    }
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    role: string;
+    id: string;
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
