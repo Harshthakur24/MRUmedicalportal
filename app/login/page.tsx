@@ -13,7 +13,7 @@ export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
     const router = useRouter();
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
     const searchParams = useSearchParams();
     const error = searchParams?.get('error');
 
@@ -28,26 +28,26 @@ export default function LoginPage() {
         e.preventDefault();
         setIsLoading(true);
 
-        const formData = new FormData(e.currentTarget);
-        const email = formData.get('email') as string;
-        const password = formData.get('password') as string;
-
         try {
-            console.log('Attempting to sign in with:', { email });
+            const formData = new FormData(e.currentTarget);
+            const email = formData.get('email') as string;
+            const password = formData.get('password') as string;
+
+            if (!email || !password) {
+                toast.error('Please enter both email and password');
+                return;
+            }
 
             const result = await signIn('credentials', {
-                email,
+                email: email.toLowerCase(),
                 password,
                 redirect: false,
             });
 
-            console.log('Sign in result:', result);
-
             if (result?.error) {
-                toast.error(result.error || 'Invalid email or password');
+                toast.error(result.error);
             } else if (result?.ok) {
                 toast.success('Logged in successfully');
-                router.push('/submit-report');
             }
         } catch (error) {
             console.error('Login error:', error);

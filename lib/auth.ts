@@ -14,75 +14,59 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Please enter both email and password");
+        }
+
         try {
-          if (!credentials?.email || !credentials?.password) {
-            console.log("Missing credentials");
-            return null;
-          }
-
-          // Debug log
-          console.log("Attempting login for email:", credentials.email);
-
-          const student = await prisma.student.findUnique({
-            where: { 
-              email: credentials.email.toLowerCase() 
+          const user = await prisma.student.findUnique({
+            where: {
+              email: credentials.email.toLowerCase(),
             },
           });
 
-          // Debug log
-          console.log("Found student:", student ? "Yes" : "No");
-
-          if (!student) {
-            console.log("No student found with this email");
-            return null;
+          if (!user) {
+            throw new Error("No user found with this email");
           }
 
-          // Debug log
-          console.log("Comparing passwords...");
-          
-          const isPasswordValid = await bcrypt.compare(
+          const passwordMatch = await bcrypt.compare(
             credentials.password,
-            student.password
+            user.password
           );
 
-          // Debug log
-          console.log("Password valid:", isPasswordValid);
-
-          if (!isPasswordValid) {
-            console.log("Password is invalid");
-            return null;
+          if (!passwordMatch) {
+            throw new Error("Incorrect password");
           }
 
-          // Debug log
-          console.log("Login successful, returning user");
-
           return {
-            id: student.id,
-            email: student.email,
-            name: student.name,
-            role: student.role,
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
           };
-
         } catch (error) {
-          console.error("Auth error:", error);
-          return null;
+          console.error("Authentication error:", error);
+          throw new Error("Authentication failed");
         }
       }
     })
   ],
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.email = user.email;
         token.role = user.role;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
+        session.user.id = token.id;
+        session.user.role = token.role;
       }
       return session;
     }
@@ -91,9 +75,6 @@ export const authOptions: NextAuthOptions = {
     signIn: '/login',
     error: '/login',
   },
-  session: {
-    strategy: "jwt",
-  },
-  debug: true, // Enable debug mode
+  debug: process.env.NODE_ENV === 'development',
   secret: process.env.NEXTAUTH_SECRET,
 }; 
