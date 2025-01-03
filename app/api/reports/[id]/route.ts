@@ -6,14 +6,14 @@ import { authOptions } from '@/lib/auth';
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.student?.id) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
     const report = await prisma.medicalReport.findUnique({
       where: { 
         id: params.id,
-        studentId: session.user.id
+        studentId: session.student.id
       },
     });
 
