@@ -44,7 +44,6 @@ model MedicalReport {
     parentContact      String
     studentContact     String
     className          String
-    section            String
     disease            String
     workingDays        Int
     t1Reexam           Boolean      @default(false)

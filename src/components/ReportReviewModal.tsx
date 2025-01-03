@@ -24,7 +24,6 @@ interface Report {
     parentContact: string;
     studentContact: string;
     className: string;
-    section: string;
     disease: string;
     workingDays: number;
     t1Reexam: boolean;
@@ -103,10 +102,7 @@ export default function ReportReviewModal({ report, isOpen, onClose }: ReportRev
                             <Label>Class</Label>
                             <div className="mt-1 text-sm">{report.className}</div>
                         </div>
-                        <div>
-                            <Label>Section</Label>
-                            <div className="mt-1 text-sm">{report.section}</div>
-                        </div>
+
                         <div>
                             <Label>Student Contact</Label>
                             <div className="mt-1 text-sm">{report.studentContact}</div>

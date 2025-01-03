@@ -27,7 +27,6 @@ interface Report {
     parentContact: string;
     studentContact: string;
     className: string;
-    section: string;
     t1Reexam: boolean;
     t2Reexam: boolean;
     t1Subjects?: string;
@@ -211,7 +210,7 @@ export default function ReportReviewPage() {
                                         <div>
                                             <p className="text-sm font-medium text-gray-500">Class & Section</p>
                                             <p className="text-base text-gray-900">
-                                                {report.className} - {report.section}
+                                                {report.className}
                                             </p>
                                         </div>
                                     </div>

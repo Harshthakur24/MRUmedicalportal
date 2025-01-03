@@ -23,7 +23,6 @@ type FormData = {
     parentContact: string;
     studentContact: string;
     className: string;
-    section: string;
     disease: string;
     workingDays: number;
     t1Reexam: boolean;
@@ -93,7 +92,6 @@ export default function MedicalReportForm() {
                 parentContact: String(data.parentContact || ''),
                 studentContact: String(data.studentContact || ''),
                 className: String(data.className || ''),
-                section: String(data.section || ''),
                 disease: String(data.disease || ''),
                 workingDays: Number(data.workingDays) || 0,
                 t1Reexam: Boolean(data.t1Reexam),
@@ -185,21 +183,14 @@ export default function MedicalReportForm() {
                             />
                         </div>
                         <div>
-                            <Label>Class</Label>
+                            <Label>Class & Section</Label>
                             <Input
                                 {...register('className')}
                                 required
-                                placeholder="Enter your class (e.g., CSE)"
+                                placeholder="Enter your class (e.g., CSE-4C)"
                             />
                         </div>
-                        <div>
-                            <Label>Section</Label>
-                            <Input
-                                {...register('section')}
-                                required
-                                placeholder="Enter your section (e.g., A)"
-                            />
-                        </div>
+
                     </div>
                 </div>
 
