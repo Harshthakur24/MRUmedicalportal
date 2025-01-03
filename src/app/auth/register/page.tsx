@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -26,7 +26,10 @@ export default function Register() {
 
     const onSubmit = async (data: FormData) => {
         if (data.password !== data.confirmPassword) {
-            toast.error("Passwords don't match");
+            toast.error('Password Mismatch', {
+                description: "The passwords you entered don't match. Please try again.",
+                duration: 3000
+            });
             return;
         }
         setLoading(true);
@@ -43,10 +46,19 @@ export default function Register() {
                 throw new Error(result.error || 'Failed to register');
             }
 
-            toast.success('Registration successful! Please login.');
-            router.push('/auth/login');
+            toast.success('Registration Successful!', {
+                description: "Your account has been created. Redirecting to login page...",
+                duration: 3000
+            });
+
+            setTimeout(() => {
+                router.push('/auth/login');
+            }, 1500);
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Failed to register');
+            toast.error('Registration Failed', {
+                description: error instanceof Error ? error.message : "Something went wrong. Please try again later.",
+                duration: 3000
+            });
         } finally {
             setLoading(false);
         }

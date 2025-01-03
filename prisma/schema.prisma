@@ -56,6 +56,8 @@ model MedicalReport {
     reviewer           Student?     @relation("ReviewedReports", fields: [reviewerId], references: [id])
     createdAt          DateTime     @default(now())
     updatedAt          DateTime     @updatedAt
+    reviewComment      String?
+    reviewedAt         DateTime?
 }
 
 enum Role {

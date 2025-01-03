@@ -108,41 +108,19 @@ export async function POST(req: Request) {
     }
 }
 
-export async function GET(req: Request) {
+export async function GET() {
     try {
-        const session = await getServerSession(authOptions);
-        if (!session?.user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-
-        const { searchParams } = new URL(req.url);
-        const status = searchParams.get('status');
-
         const reports = await prisma.medicalReport.findMany({
-            where: {
-                ...(session.user.role === 'STUDENT' 
-                    ? { studentId: session.user.id }
-                    : {}),
-                ...(status ? { status: status as 'PENDING' | 'REJECTED' } : {}),
-            },
-            include: {
-                student: {
-                    select: {
-                        name: true,
-                        email: true,
-                        department: true,
-                        year: true,
-                    }
-                },
-                reviewer: {
-                    select: {
-                        name: true,
-                        role: true,
-                    }
-                }
-            },
             orderBy: {
-                createdAt: 'desc'
+                submissionDate: 'desc'
+            },
+            select: {
+                id: true,
+                studentName: true,
+                submissionDate: true,
+                reason: true,
+                status: true,
+                medicalCertificate: true
             }
         });
 
