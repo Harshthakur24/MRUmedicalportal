@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Loader2 } from "lucide-react";
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 interface Report {
     id: string;
@@ -82,15 +83,13 @@ export default function ReportReviewPage() {
 
             if (!response.ok) throw new Error('Failed to review report');
 
+            setReport(prev => prev ? { ...prev, status } : null);
+
             toast.success(
                 status === 'APPROVED'
-                    ? 'Medical report has been approved'
-                    : 'Medical report has been rejected'
+                    ? 'Medical report has been approved ✅'
+                    : 'Medical report has been rejected ❌'
             );
-
-            setTimeout(() => {
-                router.push('/dashboard/reports');
-            }, 1500);
 
         } catch (error) {
             toast.error('Failed to submit review');
@@ -369,81 +368,66 @@ export default function ReportReviewPage() {
                             </div>
                         )}
 
-                        {report.status === 'PENDING' && (
-                            <div className="p-6 bg-gray-50 border-t border-gray-200">
-                                <div className="max-w-3xl mx-auto">
-                                    <div className="mb-8">
-                                        <label
-                                            htmlFor="comment"
-                                            className="text-sm font-medium text-gray-700 mb-2 flex items-center"
-                                        >
-                                            <FileText className="w-4 h-4 mr-2 text-gray-500" />
-                                            Review Comment
-                                            {report.status === 'PENDING' && (
-                                                <span className="ml-2 text-xs text-gray-500">(Required for rejection)</span>
-                                            )}
-                                        </label>
-                                        <div className="relative">
-                                            <textarea
-                                                id="comment"
-                                                rows={4}
-                                                className="block w-full px-4 py-3 text-gray-900 placeholder-gray-400 border border-gray-300 
-                                                           rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                                                           transition duration-200 ease-in-out resize-none
-                                                           hover:border-gray-400 shadow-sm
-                                                           text-sm leading-relaxed"
-                                                placeholder="Enter your detailed review comments here..."
-                                                value={comment}
-                                                onChange={(e) => setComment(e.target.value)}
-                                            />
-                                            <div className="absolute bottom-3 right-3 text-xs text-gray-400">
-                                                {comment.length} characters
-                                            </div>
-                                        </div>
-                                        <p className="mt-2 text-xs text-gray-500">
-                                            Provide clear and specific feedback about your decision.
+                        <div className="p-6 bg-gray-50 border-t border-gray-200">
+                            <div className="max-w-3xl mx-auto">
+                                {report.status !== 'PENDING' && (
+                                    <div className={`mb-4 p-4 rounded-md ${report.status === 'APPROVED' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                                        <p className="text-sm">
+                                            Current status: <span className="font-medium">{(report.status as string).toLowerCase()}</span>
                                         </p>
                                     </div>
+                                )}
 
-                                    <div className="flex items-center justify-end space-x-4">
-                                        <button
-                                            onClick={() => handleReview('REJECTED')}
+                                <div className="mb-8">
+                                    <label
+                                        htmlFor="comment"
+                                        className="text-sm font-medium text-gray-700 mb-2 flex items-center"
+                                    >
+                                        <FileText className="w-4 h-4 mr-2 text-gray-500" />
+                                        Review Comment
+                                        <span className="ml-2 text-xs text-gray-500">(Required for rejection)</span>
+                                    </label>
+                                    <div className="relative">
+                                        <textarea
+                                            id="comment"
+                                            rows={4}
+                                            className="block w-full p-4 rounded-md border-gray-300 shadow-sm focus:border-[#004a7c] focus:ring-[#004a7c] sm:text-sm"
+                                            placeholder="Enter your review comment here..."
+                                            value={comment}
+                                            onChange={(e) => setComment(e.target.value)}
                                             disabled={isSubmitting}
-                                            className="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                        >
-                                            {isSubmitting ? (
-                                                <>
-                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                                                    Processing...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <XCircle className="w-4 h-4 mr-2" />
-                                                    Reject Report
-                                                </>
-                                            )}
-                                        </button>
-                                        <button
-                                            onClick={() => handleReview('APPROVED')}
-                                            disabled={isSubmitting}
-                                            className="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                        >
-                                            {isSubmitting ? (
-                                                <>
-                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                                                    Processing...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <CheckCircle className="w-4 h-4 mr-2" />
-                                                    Approve Report
-                                                </>
-                                            )}
-                                        </button>
+                                        />
                                     </div>
                                 </div>
+
+                                <div className="flex gap-4">
+                                    <Button
+                                        onClick={() => handleReview('APPROVED')}
+                                        disabled={isSubmitting}
+                                        className={`flex-1 bg-green-600 h-10 p-2 hover:bg-green-700 text-white ${report.status === 'APPROVED' ? 'opacity-50' : ''}`}
+                                    >
+                                        {isSubmitting ? (
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        ) : (
+                                            <CheckCircle className="w-4 h-4 mr-2" />
+                                        )}
+                                        {report.status === 'APPROVED' ? 'Already Approved' : 'Approve Report'}
+                                    </Button>
+                                    <Button
+                                        onClick={() => handleReview('REJECTED')}
+                                        disabled={isSubmitting}
+                                        className={`flex-1 bg-red-600 h-10 p-2 hover:bg-red-700 text-white ${report.status === 'REJECTED' ? 'opacity-50' : ''}`}
+                                    >
+                                        {isSubmitting ? (
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        ) : (
+                                            <XCircle className="w-4 h-4 mr-2" />
+                                        )}
+                                        {report.status === 'REJECTED' ? 'Already Rejected' : 'Reject Report'}
+                                    </Button>
+                                </div>
                             </div>
-                        )}
+                        </div>
                     </div>
                 </div>
             </div>

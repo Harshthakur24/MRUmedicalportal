@@ -2,17 +2,18 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Role } from '@prisma/client';
 
 export default function LoginPage() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
-    const [role, setRole] = useState<'STUDENT' | 'HOD'>('STUDENT');
+    const [role, setRole] = useState<Role>('STUDENT');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [rememberMe, setRememberMe] = useState(false);
@@ -30,17 +31,19 @@ export default function LoginPage() {
             });
 
             if (result?.error) {
-                toast.error('Login Failed');
+                toast.error('Invalid credentials');
                 return;
             }
 
-            toast.success('Login Successful!');
+            toast.success('Login Successful!', {
+                description: 'Redirecting to dashboard...'
+            });
 
             setTimeout(() => {
-                router.push('/');
+                router.push('/dashboard');
             }, 1500);
         } catch (error) {
-            toast.error('Error');
+            toast.error('An error occurred during login');
         } finally {
             setIsLoading(false);
         }
@@ -76,7 +79,7 @@ export default function LoginPage() {
                                     : 'bg-white text-[#004a7c] border border-[#004a7c]/20 hover:bg-[#004a7c]/10'
                                     }`}
                             >
-                                HOD
+                                Admin
                             </button>
                         </div>
                     </CardHeader>
@@ -90,6 +93,7 @@ export default function LoginPage() {
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     disabled={isLoading}
+                                    autoComplete="email"
                                     className="border-[#004a7c]/20 focus:border-[#004a7c] focus:ring-[#004a7c]"
                                 />
                             </div>

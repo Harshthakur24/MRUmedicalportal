@@ -7,17 +7,16 @@ import { authOptions } from '@/lib/auth.config';
 export async function POST(req: Request) {
     try {
         const session = await getServerSession(authOptions);
-        console.log('Session:', session); // Debug log
+        console.log('Session:', session);
         
         if (!session?.user?.id) {
-            console.log('No session or user ID'); // Debug log
+            console.log('No session or user ID');
             return NextResponse.json(
                 { error: 'Authentication required' },
                 { status: 401 }
             );
         }
 
-        // Add this debug log
         console.log('Authenticated user:', {
             id: session.user.id,
             name: session.user.name,
@@ -80,6 +79,7 @@ export async function POST(req: Request) {
                     t2Subjects: data.t2Subjects || '',
                     status: 'PENDING',
                     otherReports: [],
+                    department: session.user.department,
                 },
             });
 

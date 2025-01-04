@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import prisma from '@/lib/prisma';
 import { authOptions } from '@/lib/auth.config';
-import { ReportStatus } from '@prisma/client';
+import { ReportStatus, School } from '@prisma/client';
 
 export async function GET() {
     try {
@@ -74,7 +74,7 @@ export async function GET() {
                     prisma.medicalReport.count({
                         where: {
                             student: {
-                                department: session.user.department
+                                department: session.user.department as School
                             }
                         }
                     })
@@ -83,7 +83,7 @@ export async function GET() {
                 prisma.medicalReport.findMany({
                     where: session.user.role === 'HOD' ? {
                         student: {
-                            department: session.user.department
+                            department: session.user.department as School
                         }
                     } : {},
                     orderBy: { createdAt: 'desc' },

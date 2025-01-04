@@ -2,6 +2,7 @@ import { DefaultSession, NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcrypt';
 import prisma from '@/lib/prisma';
+import { Role, School } from '@prisma/client';
 
 declare module "next-auth" {
     interface Session extends DefaultSession {
@@ -9,7 +10,7 @@ declare module "next-auth" {
             id: string;
             role: Role;
             rollNumber: string;
-            department: string;
+            department: School;
             year: number;
         } & DefaultSession["user"]
     }
@@ -18,7 +19,7 @@ declare module "next-auth" {
         id: string;
         role: Role;
         rollNumber: string;
-        department: string;
+        department: School;
         year: number;
         email: string;
         name: string;
@@ -30,12 +31,10 @@ declare module "next-auth/jwt" {
         id: string;
         role: Role;
         rollNumber: string;
-        department: string;
+        department: School;
         year: number;
     }
 }
-
-type Role = 'ADMIN' | 'HOD' | 'STUDENT';
 
 export const authOptions: NextAuthOptions = {
     providers: [
@@ -50,7 +49,7 @@ export const authOptions: NextAuthOptions = {
                     return null;
                 }
 
-                const user = await prisma.student.findUnique({
+                const user = await prisma.user.findUnique({
                     where: { email: credentials.email },
                     select: {
                         id: true,
@@ -90,11 +89,11 @@ export const authOptions: NextAuthOptions = {
         },
         async session({ session, token }) {
             if (session.user) {
-                session.user.id = token.id as string;
-                session.user.role = token.role as Role;
-                session.user.rollNumber = token.rollNumber as string;
-                session.user.department = token.department as string;
-                session.user.year = token.year as number;
+                session.user.id = token.id;
+                session.user.role = token.role;
+                session.user.rollNumber = token.rollNumber;
+                session.user.department = token.department;
+                session.user.year = token.year;
             }
             return session;
         }
