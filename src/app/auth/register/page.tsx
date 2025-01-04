@@ -1,14 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { Loader2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Role, School } from '@prisma/client';
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type FormData = {
     name: string;
@@ -21,31 +23,36 @@ type FormData = {
     year: number;
 };
 
-type UserRole = Role;
-
-export default function Register() {
+export default function RegisterPage() {
     const [loading, setLoading] = useState(false);
-    const [role, setRole] = useState<UserRole>('STUDENT');
-    const router = useRouter();
-    const {
-        register,
-        handleSubmit,
-        formState: { errors },
-        watch
-    } = useForm<FormData>({
-        mode: 'onBlur',
-        defaultValues: {
-            department: 'ENGINEERING'
-        }
+    const [role, setRole] = useState<Role>('STUDENT');
+    const [formData, setFormData] = useState<FormData>({
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        rollNumber: '',
+        department: null as unknown as School,
+        class: '',
+        year: 0
     });
+    const [isSubmitted, setIsSubmitted] = useState(false);
 
-    const password = watch('password');
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: name === 'year' ? Number(value) : value
+        }));
+    };
 
-    const onSubmit = async (data: FormData) => {
-        if (data.password !== data.confirmPassword) {
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (formData.password !== formData.confirmPassword) {
             toast.error('Passwords do not match');
             return;
         }
+
         setLoading(true);
         try {
             const response = await fetch('/api/auth/register', {
@@ -53,233 +60,249 @@ export default function Register() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ ...data, role }),
+                body: JSON.stringify({ ...formData, role }),
             });
 
-            if (response.ok) {
-                toast.success('Registration successful!', {
-                    description: 'Redirecting to login page...'
-                });
-                setTimeout(() => {
-                    router.push('/auth/login');
-                }, 2000);
-            } else {
-                const error = await response.json();
-                toast.error(error.message || 'Registration failed');
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Registration failed');
             }
+
+            setIsSubmitted(true);
+            toast.success('Registration successful!', {
+                description: 'Please check your email to verify your account.'
+            });
         } catch (error) {
-            toast.error('An error occurred during registration');
+            toast.error(error instanceof Error ? error.message : 'Registration failed');
         } finally {
             setLoading(false);
         }
     };
 
+    if (isSubmitted) {
+        return (
+            <div className="min-h-screen flex flex-col bg-[#004a7c]/10">
+                <div className="flex-1 flex items-center justify-center px-4 py-12">
+                    <Card className="w-full max-w-md bg-white/80 backdrop-blur-sm shadow-xl border-2 border-[#004a7c]/10">
+                        <CardHeader className="space-y-1">
+                            <CardTitle className="text-2xl text-center text-[#004a7c]">
+                                Verify Your Email
+                            </CardTitle>
+                            <CardDescription className="text-center">
+                                We&apos;ve sent a verification link to your email address. Please check your inbox and click the link to verify your account.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <p className="text-center text-sm text-gray-600">
+                                Didn&apos;t receive the email? Check your spam folder or{' '}
+                                <button
+                                    onClick={() => setIsSubmitted(false)}
+                                    className="text-[#004a7c] hover:underline"
+                                >
+                                    try again
+                                </button>
+                            </p>
+                            <div className="text-center">
+                                <Link
+                                    href="/auth/login"
+                                    className="text-sm text-[#004a7c] hover:underline"
+                                >
+                                    Back to login
+                                </Link>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="min-h-screen flex flex-col bg-[#004a7c]/10">
+        <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#004a7c]/5 to-[#004a7c]/10">
             <div className="flex-1 flex items-center justify-center px-4 py-12">
-                <Card className="w-full max-w-md bg-white/80 backdrop-blur-sm shadow-xl border-2 border-[#004a7c]/10">
-                    <CardHeader className="space-y-1 text-center">
-                        <CardTitle className="text-3xl font-bold text-[#004a7c]">
+                <Card className="w-full max-w-3xl bg-white/95 backdrop-blur-sm shadow-xl border border-gray-200">
+                    <CardHeader className="space-y-4 pb-6">
+                        <CardTitle className="text-3xl font-bold text-center text-[#004a7c]">
                             Create Account
                         </CardTitle>
-                        <CardDescription className="text-gray-600">
+                        <CardDescription className="text-center text-base">
                             Enter your details to register for an account
                         </CardDescription>
-                        <div className="flex justify-center space-x-4 mt-4">
-                            <button
-                                type="button"
-                                onClick={() => setRole('STUDENT')}
-                                className={`px-4 py-2 rounded-md transition-colors ${role === 'STUDENT'
-                                    ? 'bg-[#004a7c] text-white'
-                                    : 'bg-white text-[#004a7c] border border-[#004a7c]/20 hover:bg-[#004a7c]/10'
-                                    }`}
-                            >
-                                Student
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setRole('HOD')}
-                                className={`px-4 py-2 rounded-md transition-colors ${role === 'HOD'
-                                    ? 'bg-[#004a7c] text-white'
-                                    : 'bg-white text-[#004a7c] border border-[#004a7c]/20 hover:bg-[#004a7c]/10'
-                                    }`}
-                            >
-                                Admin
-                            </button>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">
-                                    Full Name
-                                </label>
-                                <Input
-                                    {...register('name', {
-                                        required: 'Name is required',
-                                        minLength: { value: 2, message: 'Name must be at least 2 characters' }
-                                    })}
-                                    placeholder="Enter your full name"
-                                    className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#004a7c]"
+                        <Tabs defaultValue="STUDENT" className="w-full" onValueChange={(value) => setRole(value as Role)}>
+                            <TabsList className="grid w-full grid-cols-2 p-1 bg-gray-100/80 rounded-lg relative overflow-hidden">
+                                <div
+                                    className="absolute inset-y-1 w-[calc(50%-4px)] bg-[#004a7c] rounded-md transition-all duration-1800 ease-in-out"
+                                    style={{
+                                        transform: role === 'STUDENT' ? 'translateX(4px)' : 'translateX(calc(100% + 4px))',
+                                        boxShadow: '0 2px 4px rgba(0,74,124,0.1)'
+                                    }}
                                 />
-                                {errors.name && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">
-                                    Email
-                                </label>
-                                <Input
-                                    {...register('email', {
-                                        required: 'Email is required',
-                                        pattern: {
-                                            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                            message: 'Invalid email address'
-                                        }
-                                    })}
-                                    type="email"
-                                    placeholder="Enter your email"
-                                    className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#004a7c]"
-                                />
-                                {errors.email && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">
-                                    Roll Number
-                                </label>
-                                <Input
-                                    {...register('rollNumber')}
-                                    placeholder="Enter your roll number"
-                                    className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#004a7c]"
-                                    required
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">
-                                    Password
-                                </label>
-                                <Input
-                                    {...register('password', {
-                                        required: 'Password is required',
-                                        minLength: { value: 8, message: 'Password must be at least 8 characters' }
-                                    })}
-                                    type="password"
-                                    placeholder="Create a password"
-                                    className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#004a7c]"
-                                />
-                                {errors.password && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">
-                                    Confirm Password
-                                </label>
-                                <Input
-                                    {...register('confirmPassword', {
-                                        required: 'Please confirm your password',
-                                        validate: value => value === password || 'Passwords do not match'
-                                    })}
-                                    type="password"
-                                    placeholder="Confirm your password"
-                                    className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#004a7c]"
-                                />
-                                {errors.confirmPassword && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">
-                                    Class
-                                </label>
-                                <Input
-                                    {...register('class', {
-                                        required: 'Class is required'
-                                    })}
-                                    placeholder="Enter your class"
-                                    className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#004a7c]"
-                                />
-                                {errors.class && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.class.message}</p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">
-                                    Department
-                                </label>
-                                <select
-                                    {...register('department', {
-                                        required: 'Department is required'
-                                    })}
-                                    className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#004a7c] bg-white"
+                                <TabsTrigger
+                                    value="STUDENT"
+                                    className="relative z-10 rounded-md transition-all duration-300 data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:text-[#004a7c] data-[state=active]:font-medium"
                                 >
-                                    <option value="ENGINEERING">School of Engineering</option>
-                                    <option value="LAW">School of Law</option>
-                                    <option value="SCIENCE">School of Science</option>
-                                    <option value="EDUCATION_AND_HUMANITIES">School of Education & Humanities</option>
-                                    <option value="MANAGEMENT_AND_COMMERCE">School of Management & Commerce</option>
-                                </select>
-                                {errors.department && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.department.message}</p>
-                                )}
+                                    Student
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    value="HOD"
+                                    className="relative z-10 rounded-md transition-all duration-300 data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:text-[#004a7c] data-[state=active]:font-medium"
+                                >
+                                    Admin
+                                </TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                    </CardHeader>
+                    <CardContent className="space-y-6 w-full px-8">
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-3">
+                                    <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
+                                    <Input
+                                        id="name"
+                                        name="name"
+                                        placeholder="Enter your full name"
+                                        value={formData.name}
+                                        onChange={handleInputChange}
+                                        required
+                                        disabled={loading}
+                                        className="h-11 focus-visible:ring-[#004a7c] hover:border-[#004a7c]/50 transition-colors"
+                                    />
+                                </div>
+                                <div className="space-y-3">
+                                    <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
+                                    <Input
+                                        id="email"
+                                        name="email"
+                                        type="email"
+                                        placeholder="Enter your email"
+                                        value={formData.email}
+                                        onChange={handleInputChange}
+                                        required
+                                        disabled={loading}
+                                        className="h-11 focus-visible:ring-[#004a7c] hover:border-[#004a7c]/50 transition-colors"
+                                    />
+                                </div>
+                                <div className="space-y-3">
+                                    <Label htmlFor="rollNumber" className="text-sm font-medium">Roll Number</Label>
+                                    <Input
+                                        id="rollNumber"
+                                        name="rollNumber"
+                                        placeholder="Enter your roll number"
+                                        value={formData.rollNumber}
+                                        onChange={handleInputChange}
+                                        required
+                                        disabled={loading}
+                                        className="h-11 focus-visible:ring-[#004a7c] hover:border-[#004a7c]/50 transition-colors"
+                                    />
+                                </div>
+                                <div className="space-y-3">
+                                    <Label htmlFor="department" className="text-sm font-medium">Department</Label>
+                                    <Select
+                                        name="department"
+                                        value={formData.department}
+                                        onValueChange={(value) => handleInputChange({
+                                            target: { name: 'department', value }
+                                        } as React.ChangeEvent<HTMLSelectElement>)}
+                                    >
+                                        <SelectTrigger className="h-11 focus:ring-[#004a7c] hover:border-[#004a7c]/50 transition-colors">
+                                            <SelectValue placeholder="Select your department" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-white">
+                                            <SelectItem value="ENGINEERING" className="hover:bg-[#004a7c]/10 cursor-pointer transition-colors">School of Engineering</SelectItem>
+                                            <SelectItem value="LAW" className="hover:bg-[#004a7c]/10 cursor-pointer transition-colors">School of Law</SelectItem>
+                                            <SelectItem value="SCIENCE" className="hover:bg-[#004a7c]/10 cursor-pointer transition-colors">School of Science</SelectItem>
+                                            <SelectItem value="EDUCATION_AND_HUMANITIES" className="hover:bg-[#004a7c]/10 cursor-pointer transition-colors">School of Education & Humanities</SelectItem>
+                                            <SelectItem value="MANAGEMENT_AND_COMMERCE" className="hover:bg-[#004a7c]/10 cursor-pointer transition-colors">School of Management & Commerce</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-3">
+                                    <Label htmlFor="class" className="text-sm font-medium">Class</Label>
+                                    <Input
+                                        id="class"
+                                        name="class"
+                                        placeholder="Enter your class"
+                                        value={formData.class}
+                                        onChange={handleInputChange}
+                                        required
+                                        disabled={loading}
+                                        className="h-11 focus-visible:ring-[#004a7c] hover:border-[#004a7c]/50 transition-colors"
+                                    />
+                                </div>
+                                <div className="space-y-3">
+                                    <Label htmlFor="year" className="text-sm font-medium">Year</Label>
+                                    <Select
+                                        name="year"
+                                        value={formData.year ? formData.year.toString() : ""}
+                                        onValueChange={(value) => handleInputChange({
+                                            target: { name: 'year', value }
+                                        } as React.ChangeEvent<HTMLSelectElement>)}
+                                    >
+                                        <SelectTrigger className="h-11 focus:ring-[#004a7c] hover:border-[#004a7c]/50 transition-colors">
+                                            <SelectValue placeholder="Select your year" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-white">
+                                            <SelectItem value="1" className="hover:bg-[#004a7c]/10 cursor-pointer transition-colors">First Year</SelectItem>
+                                            <SelectItem value="2" className="hover:bg-[#004a7c]/10 cursor-pointer transition-colors">Second Year</SelectItem>
+                                            <SelectItem value="3" className="hover:bg-[#004a7c]/10 cursor-pointer transition-colors">Third Year</SelectItem>
+                                            <SelectItem value="4" className="hover:bg-[#004a7c]/10 cursor-pointer transition-colors">Fourth Year</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-3">
+                                    <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                                    <Input
+                                        id="password"
+                                        name="password"
+                                        type="password"
+                                        placeholder="Enter your password"
+                                        value={formData.password}
+                                        onChange={handleInputChange}
+                                        required
+                                        disabled={loading}
+                                        className="h-11 focus-visible:ring-[#004a7c] hover:border-[#004a7c]/50 transition-colors"
+                                    />
+                                </div>
+                                <div className="space-y-3">
+                                    <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password</Label>
+                                    <Input
+                                        id="confirmPassword"
+                                        name="confirmPassword"
+                                        type="password"
+                                        placeholder="Confirm your password"
+                                        value={formData.confirmPassword}
+                                        onChange={handleInputChange}
+                                        required
+                                        disabled={loading}
+                                        className="h-11 focus-visible:ring-[#004a7c] hover:border-[#004a7c]/50 transition-colors"
+                                    />
+                                </div>
                             </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">
-                                    Year
-                                </label>
-                                <Input
-                                    {...register('year', { valueAsNumber: true })}
-                                    type="number"
-                                    placeholder="Enter your year"
-                                    min="1"
-                                    max="4"
-                                    className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#004a7c]"
-                                    required
-                                />
-                            </div>
-
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="checkbox"
-                                    id="terms"
-                                    required
-                                    className="h-4 w-4 rounded border-gray-300 text-[#004a7c] focus:ring-[#004a7c]"
-                                />
-                                <label htmlFor="terms" className="text-sm text-gray-600">
-                                    I agree to the{" "}
-                                    <Link href="/terms" className="text-[#004a7c] hover:underline">
-                                        Terms of Service
-                                    </Link>{" "}
-                                    and{" "}
-                                    <Link href="/privacy" className="text-[#004a7c] hover:underline">
-                                        Privacy Policy
+                            <div>
+                                <Button
+                                    type="submit"
+                                    className="w-full bg-[#004a7c] hover:bg-[#004a7c]/90 h-12 text-white text-lg font-medium mt-8"
+                                    disabled={loading}
+                                >
+                                    {loading ? (
+                                        <>
+                                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                            Registering...
+                                        </>
+                                    ) : (
+                                        'Register'
+                                    )}
+                                </Button>
+                                <div className="text-center text-sm text-gray-600 pt-4">
+                                    Already have an account?{' '}
+                                    <Link
+                                        href="/auth/login"
+                                        className="text-[#004a7c] hover:text-[#004a7c]/80 hover:underline font-medium"
+                                    >
+                                        Login
                                     </Link>
-                                </label>
-                            </div>
-
-                            <Button
-                                type="submit"
-                                className="w-full bg-[#004a7c] hover:bg-[#003a61] text-white py-2 rounded-md transition-all duration-300 h-10 hover:scale-105"
-                                disabled={loading}
-                            >
-                                {loading ? "Creating account..." : "Create Account"}
-                            </Button>
-
-                            <div className="text-center text-sm text-gray-600">
-                                Already have an account?{" "}
-                                <Link href="/auth/login" className="text-[#004a7c] hover:underline">
-                                    Sign in
-                                </Link>
+                                </div>
                             </div>
                         </form>
                     </CardContent>

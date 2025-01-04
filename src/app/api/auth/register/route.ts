@@ -1,40 +1,15 @@
 import { NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
+import { randomBytes } from 'crypto';
 import prisma from '@/lib/prisma';
-import { Role, School } from '@prisma/client';
+import { sendVerificationEmail } from '@/lib/resend';
 
 export async function POST(req: Request) {
     try {
-        if (!req.body) {
-            return NextResponse.json(
-                { message: 'Request body is missing' },
-                { status: 400 }
-            );
-        }
-
         const data = await req.json();
-        
-        // Validate required fields
-        const requiredFields = ['name', 'email', 'password', 'rollNumber', 'department', 'class', 'year', 'role'];
-        const missingFields = requiredFields.filter(field => !data[field]);
-        
-        if (missingFields.length > 0) {
-            return NextResponse.json(
-                { message: `Missing required fields: ${missingFields.join(', ')}` },
-                { status: 400 }
-            );
-        }
+        console.log('Registration request:', data);
 
         const { name, email, password, rollNumber, department, class: studentClass, year, role } = data;
-
-        // Validate email format
-        const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
-        if (!emailRegex.test(email)) {
-            return NextResponse.json(
-                { message: 'Invalid email format' },
-                { status: 400 }
-            );
-        }
 
         // Check if user already exists
         const existingUser = await prisma.user.findUnique({
@@ -48,43 +23,54 @@ export async function POST(req: Request) {
             );
         }
 
-        // Validate role
-        if (!Object.values(Role).includes(role as Role)) {
-            return NextResponse.json(
-                { message: 'Invalid role specified' },
-                { status: 400 }
-            );
-        }
-
-        // Validate department
-        if (!Object.values(School).includes(department as School)) {
-            return NextResponse.json(
-                { message: 'Invalid department specified' },
-                { status: 400 }
-            );
-        }
+        // Generate verification token
+        const verificationToken = randomBytes(32).toString('hex');
+        console.log('Generated verification token:', { email, verificationToken });
 
         // Hash password
         const hashedPassword = await hash(password, 10);
 
-        // Create user with all fields including class
+        // Create user with verification token
         const user = await prisma.user.create({
             data: {
                 name,
                 email,
                 password: hashedPassword,
                 rollNumber,
-                department: department as School,
+                department,
                 class: studentClass,
                 year: Number(year),
-                role: role as Role
+                role,
+                verificationToken
             }
         });
 
-        return NextResponse.json(
-            { message: 'User created successfully', user: { id: user.id, email: user.email } },
-            { status: 201 }
-        );
+        console.log('User created:', { userId: user.id, email: user.email });
+
+        try {
+            // Send verification email
+            const emailResult = await sendVerificationEmail(email, verificationToken);
+            console.log('Verification email sent:', emailResult);
+
+            return NextResponse.json(
+                { 
+                    message: 'User created successfully. Please check your email to verify your account.',
+                    user: { id: user.id, email: user.email } 
+                },
+                { status: 201 }
+            );
+        } catch (emailError) {
+            console.error('Failed to send verification email:', emailError);
+            
+            // Still return success since user was created
+            return NextResponse.json(
+                { 
+                    message: 'User created successfully, but failed to send verification email. Please contact support.',
+                    user: { id: user.id, email: user.email } 
+                },
+                { status: 201 }
+            );
+        }
     } catch (error) {
         console.error('Registration error:', error);
         return NextResponse.json(

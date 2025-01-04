@@ -1,6 +1,6 @@
-import { DefaultSession, NextAuthOptions } from 'next-auth';
+import { DefaultSession, NextAuthOptions, User } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { compare } from 'bcrypt';
+import { compare } from 'bcryptjs';
 import prisma from '@/lib/prisma';
 import { Role, School } from '@prisma/client';
 
@@ -11,18 +11,16 @@ declare module "next-auth" {
             role: Role;
             rollNumber: string;
             department: School;
-            year: number;
         } & DefaultSession["user"]
     }
 
     interface User {
         id: string;
+        email: string;
+        name: string;
         role: Role;
         rollNumber: string;
         department: School;
-        year: number;
-        email: string;
-        name: string;
     }
 }
 
@@ -32,7 +30,6 @@ declare module "next-auth/jwt" {
         role: Role;
         rollNumber: string;
         department: School;
-        year: number;
     }
 }
 
@@ -41,40 +38,52 @@ export const authOptions: NextAuthOptions = {
         CredentialsProvider({
             name: 'Credentials',
             credentials: {
-                email: { label: "Email", type: "email" },
-                password: { label: "Password", type: "password" }
+                email: { label: 'Email', type: 'email' },
+                password: { label: 'Password', type: 'password' },
+                role: { label: 'Role', type: 'text' }
             },
             async authorize(credentials) {
-                if (!credentials?.email || !credentials?.password) {
-                    return null;
-                }
-
-                const user = await prisma.user.findUnique({
-                    where: { email: credentials.email },
-                    select: {
-                        id: true,
-                        email: true,
-                        name: true,
-                        password: true,
-                        role: true,
-                        rollNumber: true,
-                        department: true,
-                        year: true,
+                try {
+                    if (!credentials?.email || !credentials?.password || !credentials?.role) {
+                        console.log('Missing credentials');
+                        return null;
                     }
-                });
 
-                if (!user) return null;
+                    const user = await prisma.user.findFirst({
+                        where: {
+                            email: credentials.email,
+                            role: credentials.role as Role
+                        }
+                    });
 
-                const passwordMatch = await compare(credentials.password, user.password);
-                if (!passwordMatch) return null;
+                    if (!user) {
+                        throw new Error('Invalid credentials');
+                    }
 
-                return user;
+                    const isPasswordValid = await compare(credentials.password, user.password);
+
+                    if (!isPasswordValid) {
+                        throw new Error('Invalid credentials');
+                    }
+
+                    return {
+                        id: user.id,
+                        email: user.email,
+                        name: user.name,
+                        role: user.role,
+                        rollNumber: user.rollNumber,
+                        department: user.department
+                    } as unknown as User;
+                } catch (error) {
+                    console.error('Login error:', error);
+                    throw error;
+                }
             }
         })
     ],
-    session: {
-        strategy: "jwt",
-        maxAge: 30 * 24 * 60 * 60, // 30 days
+    pages: {
+        signIn: '/auth/login',
+        error: '/auth/login',
     },
     callbacks: {
         async jwt({ token, user }) {
@@ -83,23 +92,17 @@ export const authOptions: NextAuthOptions = {
                 token.role = user.role;
                 token.rollNumber = user.rollNumber;
                 token.department = user.department;
-                token.year = user.year;
             }
             return token;
         },
         async session({ session, token }) {
-            if (session.user) {
+            if (token && session.user) {
                 session.user.id = token.id;
                 session.user.role = token.role;
                 session.user.rollNumber = token.rollNumber;
                 session.user.department = token.department;
-                session.user.year = token.year;
             }
             return session;
         }
-    },
-    pages: {
-        signIn: '/auth/login',
-        error: '/auth/error'
     }
 }; 

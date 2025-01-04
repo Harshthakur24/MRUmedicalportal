@@ -16,7 +16,6 @@ export default function LoginPage() {
     const [role, setRole] = useState<Role>('STUDENT');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [rememberMe, setRememberMe] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -31,7 +30,13 @@ export default function LoginPage() {
             });
 
             if (result?.error) {
-                toast.error('Invalid credentials');
+                if (result.error === 'Please verify your email before logging in') {
+                    toast.error('Please verify your email before logging in', {
+                        description: 'Check your inbox for the verification link'
+                    });
+                } else {
+                    toast.error('Invalid credentials');
+                }
                 return;
             }
 
@@ -113,8 +118,6 @@ export default function LoginPage() {
                                     <input
                                         type="checkbox"
                                         id="remember"
-                                        checked={rememberMe}
-                                        onChange={(e) => setRememberMe(e.target.checked)}
                                         className="rounded border-[#004a7c]/20 text-[#004a7c] focus:ring-[#004a7c]"
                                     />
                                     <label htmlFor="remember" className="text-sm text-gray-600">
@@ -122,7 +125,7 @@ export default function LoginPage() {
                                     </label>
                                 </div>
                                 <Link
-                                    href="/forgot-password"
+                                    href="/auth/forgot-password"
                                     className="text-sm text-[#004a7c] hover:text-[#004a7c]/80 hover:underline"
                                 >
                                     Forgot password?

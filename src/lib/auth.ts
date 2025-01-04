@@ -1,7 +1,8 @@
-import { DefaultSession, NextAuthOptions } from 'next-auth';
+import { DefaultSession, NextAuthOptions, User } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcrypt';
 import prisma from '@/lib/prisma';
+import { Role, School } from '@prisma/client';
 
 declare module "next-auth" {
     interface Session extends DefaultSession {
@@ -9,31 +10,30 @@ declare module "next-auth" {
             id: string;
             role: Role;
             rollNumber: string;
-            department: string;
-            year: number;
+            department: School;
         } & DefaultSession["user"]
     }
 
     interface User {
         id: string;
-        role: Role;
-        rollNumber: string;
         email: string;
         name: string;
-        department: string;
-        year: number;
-    }
-
-    interface JWT {
-        id: string;
         role: Role;
         rollNumber: string;
-        department: string;
+        department: School;
         year: number;
     }
 }
 
-type Role = 'ADMIN' | 'HOD' | 'STUDENT';
+declare module "next-auth/jwt" {
+    interface JWT {
+        id: string;
+        role: Role;
+        rollNumber: string;
+        department: School;
+        year: number;
+    }
+}
 
 export const authOptions: NextAuthOptions = {
     providers: [
@@ -48,7 +48,7 @@ export const authOptions: NextAuthOptions = {
                     throw new Error('Please provide both email and password');
                 }
 
-                const user = await prisma.student.findUnique({
+                const user = await prisma.user.findUnique({
                     where: {
                         email: credentials.email
                     },
@@ -82,7 +82,7 @@ export const authOptions: NextAuthOptions = {
                     rollNumber: user.rollNumber,
                     department: user.department,
                     year: user.year
-                };
+                } satisfies User;
             }
         })
     ],
@@ -101,7 +101,6 @@ export const authOptions: NextAuthOptions = {
                 token.id = user.id;
                 token.rollNumber = user.rollNumber;
                 token.department = user.department;
-                token.year = user.year;
             }
             return token;
         },
@@ -110,8 +109,7 @@ export const authOptions: NextAuthOptions = {
                 session.user.role = token.role as Role;
                 session.user.id = token.id as string;
                 session.user.rollNumber = token.rollNumber as string;
-                session.user.department = token.department as string;
-                session.user.year = token.year as number;
+                session.user.department = token.department as School;
             }
             return session;
         },
