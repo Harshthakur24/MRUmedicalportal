@@ -1,60 +1,139 @@
-import { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { ReportStatus } from '@prisma/client';
+import { auth } from '@/lib/auth';
+import { Prisma } from '@prisma/client';
 
-type ReviewParams = {
-    status: ReportStatus;
-    comment: string;
-};
+type ReviewAction = 'approve' | 'reject';
 
-// Add route segment config
-export const dynamic = 'force-dynamic';
+interface ReviewData {
+    action: ReviewAction;
+    comment?: string;
+}
 
 export async function POST(
-    request: NextRequest,
-    { params }: { params: { id: string } }
-): Promise<Response> {
-    const { id } = params;
-
-    if (!id) {
-        return Response.json(
-            { error: 'Report ID is required' },
-            { status: 400 }
-        );
-    }
-
+    request: Request,
+    context: { params: { id: string } }
+) {
     try {
-        const data = await request.json() as ReviewParams;
+        // Await both session and params
+        const [session, { id }] = await Promise.all([
+            auth(),
+            Promise.resolve(context.params)
+        ]);
 
-        // Validate the input
-        if (!data.status || (data.status === 'REJECTED' && !data.comment)) {
-            return Response.json(
-                { error: 'Invalid input' },
-                { status: 400 }
-            );
+        if (!session?.user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const data = await request.json() as ReviewData;
+        const { action, comment } = data;
+
+        const report = await prisma.medicalReport.findUnique({
+            where: { id },
+            include: {
+                student: {
+                    select: {
+                        name: true,
+                        email: true,
+                        department: true
+                    }
+                }
+            }
+        });
+
+        if (!report) {
+            return NextResponse.json({ error: 'Report not found' }, { status: 404 });
+        }
+
+        // Create a comment if provided
+        if (comment) {
+            await prisma.comment.create({
+                data: {
+                    content: comment,
+                    authorId: session.user.id,
+                    reportId: id
+                }
+            });
+        }
+
+        // Update report status based on user role and action
+        const updateData: Prisma.MedicalReportUpdateInput = {};
+
+        switch (session.user.role) {
+            case 'PROGRAM_COORDINATOR':
+                if (report.currentApprovalLevel !== 'PROGRAM_COORDINATOR') {
+                    return NextResponse.json(
+                        { error: 'Not authorized to review at this stage' },
+                        { status: 403 }
+                    );
+                }
+                updateData.approvedByProgramCoordinator = action === 'approve';
+                updateData.currentApprovalLevel = action === 'approve' ? 'HOD' : 'PROGRAM_COORDINATOR';
+                updateData.status = action === 'approve' ? 'PENDING' : 'REJECTED';
+                break;
+
+            case 'HOD':
+                if (report.currentApprovalLevel !== 'HOD' || !report.approvedByProgramCoordinator) {
+                    return NextResponse.json(
+                        { error: 'Not authorized to review at this stage' },
+                        { status: 403 }
+                    );
+                }
+                updateData.approvedByHOD = action === 'approve';
+                updateData.currentApprovalLevel = action === 'approve' ? 'DEAN_ACADEMICS' : 'HOD';
+                updateData.status = action === 'approve' ? 'PENDING' : 'REJECTED';
+                break;
+
+            case 'DEAN_ACADEMICS':
+                if (report.currentApprovalLevel !== 'DEAN_ACADEMICS' || !report.approvedByHOD) {
+                    return NextResponse.json(
+                        { error: 'Not authorized to review at this stage' },
+                        { status: 403 }
+                    );
+                }
+                updateData.approvedByDeanAcademics = action === 'approve';
+                updateData.status = action === 'approve' ? 'APPROVED' : 'REJECTED';
+                break;
+
+            default:
+                return NextResponse.json(
+                    { error: 'Not authorized to review reports' },
+                    { status: 403 }
+                );
         }
 
         const updatedReport = await prisma.medicalReport.update({
-            where: { 
-                id: id 
-            },
-            data: {
-                status: data.status,
-                reviewComment: data.comment,
-                reviewedAt: new Date(),
-            },
+            where: { id },
+            data: updateData,
+            include: {
+                student: {
+                    select: {
+                        name: true,
+                        email: true,
+                        department: true
+                    }
+                },
+                comments: {
+                    include: {
+                        author: {
+                            select: {
+                                name: true,
+                                role: true
+                            }
+                        }
+                    },
+                    orderBy: {
+                        createdAt: 'desc'
+                    }
+                }
+            }
         });
 
-        return Response.json({
-            success: true,
-            message: `Report ${data.status.toLowerCase()} successfully`,
-            report: updatedReport
-        });
-
-    } catch (error: unknown) {
-        console.error('Error updating report:', error);
-        return Response.json(
-            { error: 'Failed to update report status' },
+        return NextResponse.json(updatedReport);
+    } catch (error) {
+        console.error('Error reviewing report:', error);
+        return NextResponse.json(
+            { error: 'Failed to review report' },
             { status: 500 }
         );
     }

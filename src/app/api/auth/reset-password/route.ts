@@ -16,16 +16,13 @@ export async function POST(req: Request) {
         // Find user with valid reset token
         const user = await prisma.user.findFirst({
             where: {
-                resetPasswordToken: token,
-                resetPasswordExpires: {
-                    gt: new Date()
-                }
+                verificationToken: token
             }
         });
 
         if (!user) {
             return NextResponse.json(
-                { message: 'Invalid or expired reset token' },
+                { message: 'Invalid reset token' },
                 { status: 400 }
             );
         }
@@ -33,13 +30,44 @@ export async function POST(req: Request) {
         // Hash new password
         const hashedPassword = await hash(password, 10);
 
-        // Update user's password and clear reset token
+        // Update or create user's credentials in the Account model
+        const existingAccount = await prisma.account.findFirst({
+            where: {
+                provider: 'credentials',
+                providerAccountId: user.email!,
+                userId: user.id
+            }
+        });
+
+        if (existingAccount) {
+            await prisma.account.update({
+                where: {
+                    provider_providerAccountId: {
+                        provider: 'credentials',
+                        providerAccountId: user.email!
+                    }
+                },
+                data: {
+                    access_token: hashedPassword
+                }
+            });
+        } else {
+            await prisma.account.create({
+                data: {
+                    type: 'credentials',
+                    provider: 'credentials',
+                    providerAccountId: user.email!,
+                    userId: user.id,
+                    access_token: hashedPassword
+                }
+            });
+        }
+
+        // Clear verification token
         await prisma.user.update({
             where: { id: user.id },
             data: {
-                password: hashedPassword,
-                resetPasswordToken: null,
-                resetPasswordExpires: null
+                verificationToken: null
             }
         });
 

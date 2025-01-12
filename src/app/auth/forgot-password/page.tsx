@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { toast, Toaster } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -127,6 +127,7 @@ export default function ForgotPasswordPage() {
                     </CardContent>
                 </Card>
             </div>
+            <Toaster position="top-center" />
         </div>
     );
 } 

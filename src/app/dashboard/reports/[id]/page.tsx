@@ -10,6 +10,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Toaster } from 'sonner';
 
 interface Report {
     id: string;
@@ -431,6 +432,7 @@ export default function ReportReviewPage() {
                     </div>
                 </div>
             </div>
+            <Toaster position="bottom-right" />
         </div>
     );
 } 

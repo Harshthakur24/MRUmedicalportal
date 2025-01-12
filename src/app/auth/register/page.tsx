@@ -1,308 +1,281 @@
 'use client';
 
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { toast } from 'react-hot-toast';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Role, School } from '@prisma/client';
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Loader2 } from 'lucide-react';
 
-type FormData = {
+interface FormData {
     name: string;
     email: string;
     password: string;
     confirmPassword: string;
+    department: string;
+    year: string;
     rollNumber: string;
-    department: School;
-    class: string;
-    year: number;
-};
+    className: string;
+    studentContact?: string;
+    parentName?: string;
+    parentContact?: string;
+}
 
 export default function RegisterPage() {
-    const [loading, setLoading] = useState(false);
-    const [role, setRole] = useState<Role>('STUDENT');
+    const router = useRouter();
+    const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState<FormData>({
         name: '',
         email: '',
         password: '',
         confirmPassword: '',
+        department: '',
+        year: '',
         rollNumber: '',
-        department: null as unknown as School,
-        class: '',
-        year: 0
+        className: '',
+        studentContact: '',
+        parentName: '',
+        parentContact: ''
     });
-    const [isSubmitted, setIsSubmitted] = useState(false);
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: name === 'year' ? Number(value) : value
-        }));
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSelectChange = (name: string, value: string) => {
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const validateForm = () => {
+        if (!formData.name || !formData.email || !formData.password || !formData.department ||
+            !formData.year || !formData.rollNumber || !formData.className) {
+            toast.error('Please fill in all required fields');
+            return false;
+        }
+
+        if (formData.password !== formData.confirmPassword) {
+            toast.error('Passwords do not match');
+            return false;
+        }
+
+        if (formData.password.length < 8) {
+            toast.error('Password must be at least 8 characters long');
+            return false;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email)) {
+            toast.error('Please enter a valid email address');
+            return false;
+        }
+
+        return true;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (formData.password !== formData.confirmPassword) {
-            toast.error('Passwords do not match');
-            return;
-        }
+        if (!validateForm()) return;
 
-        setLoading(true);
+        setIsLoading(true);
         try {
             const response = await fetch('/api/auth/register', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ ...formData, role }),
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
             });
 
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || 'Registration failed');
+                throw new Error(data.error || 'Registration failed');
             }
 
-            setIsSubmitted(true);
-            toast.success('Registration successful!', {
-                description: 'Please check your email to verify your account.'
-            });
+            toast.success('Registration successful! Please verify your email.');
+            // Redirect to verify page with email parameter
+            router.push(`/auth/verify?email=${encodeURIComponent(formData.email)}`);
+
         } catch (error) {
             toast.error(error instanceof Error ? error.message : 'Registration failed');
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
     };
 
-    if (isSubmitted) {
-        return (
-            <div className="min-h-screen flex flex-col bg-[#004a7c]/10">
-                <div className="flex-1 flex items-center justify-center px-4 py-12">
-                    <Card className="w-full max-w-md bg-white/80 backdrop-blur-sm shadow-xl border-2 border-[#004a7c]/10">
-                        <CardHeader className="space-y-1">
-                            <CardTitle className="text-2xl text-center text-[#004a7c]">
-                                Verify Your Email
-                            </CardTitle>
-                            <CardDescription className="text-center">
-                                We&apos;ve sent a verification link to your email address. Please check your inbox and click the link to verify your account.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <p className="text-center text-sm text-gray-600">
-                                Didn&apos;t receive the email? Check your spam folder or{' '}
-                                <button
-                                    onClick={() => setIsSubmitted(false)}
-                                    className="text-[#004a7c] hover:underline"
-                                >
-                                    try again
-                                </button>
-                            </p>
-                            <div className="text-center">
-                                <Link
-                                    href="/auth/login"
-                                    className="text-sm text-[#004a7c] hover:underline"
-                                >
-                                    Back to login
-                                </Link>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#004a7c]/5 to-[#004a7c]/10">
+        <div className="min-h-screen flex flex-col bg-[#004a7c]/10">
             <div className="flex-1 flex items-center justify-center px-4 py-12">
-                <Card className="w-full max-w-3xl bg-white/95 backdrop-blur-sm shadow-xl border border-gray-200">
-                    <CardHeader className="space-y-4 pb-6">
-                        <CardTitle className="text-3xl font-bold text-center text-[#004a7c]">
-                            Create Account
+                <Card className="w-full max-w-2xl bg-white/80 backdrop-blur-sm shadow-xl border-2 border-[#004a7c]/10">
+                    <CardHeader className="space-y-1">
+                        <CardTitle className="text-2xl text-center text-[#004a7c]">
+                            Student Registration
                         </CardTitle>
-                        <CardDescription className="text-center text-base">
-                            Enter your details to register for an account
+                        <CardDescription className="text-center">
+                            Enter your details to create an account
                         </CardDescription>
-                        <Tabs defaultValue="STUDENT" className="w-full" onValueChange={(value) => setRole(value as Role)}>
-                            <TabsList className="grid w-full grid-cols-2 p-1 bg-gray-100/80 rounded-lg relative overflow-hidden">
-                                <div
-                                    className="absolute inset-y-1 w-[calc(50%-4px)] bg-[#004a7c] rounded-md transition-all duration-1800 ease-in-out"
-                                    style={{
-                                        transform: role === 'STUDENT' ? 'translateX(4px)' : 'translateX(calc(100% + 4px))',
-                                        boxShadow: '0 2px 4px rgba(0,74,124,0.1)'
-                                    }}
-                                />
-                                <TabsTrigger
-                                    value="STUDENT"
-                                    className="relative z-10 rounded-md transition-all duration-300 data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:text-[#004a7c] data-[state=active]:font-medium"
-                                >
-                                    Student
-                                </TabsTrigger>
-                                <TabsTrigger
-                                    value="HOD"
-                                    className="relative z-10 rounded-md transition-all duration-300 data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:text-[#004a7c] data-[state=active]:font-medium"
-                                >
-                                    Admin
-                                </TabsTrigger>
-                            </TabsList>
-                        </Tabs>
                     </CardHeader>
-                    <CardContent className="space-y-6 w-full px-8">
+                    <CardContent>
                         <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-3">
-                                    <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Full Name *</Label>
                                     <Input
                                         id="name"
                                         name="name"
-                                        placeholder="Enter your full name"
                                         value={formData.name}
                                         onChange={handleInputChange}
+                                        disabled={isLoading}
                                         required
-                                        disabled={loading}
-                                        className="h-11 focus-visible:ring-[#004a7c] hover:border-[#004a7c]/50 transition-colors"
                                     />
                                 </div>
-                                <div className="space-y-3">
-                                    <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">Email *</Label>
                                     <Input
                                         id="email"
                                         name="email"
                                         type="email"
-                                        placeholder="Enter your email"
                                         value={formData.email}
                                         onChange={handleInputChange}
+                                        disabled={isLoading}
                                         required
-                                        disabled={loading}
-                                        className="h-11 focus-visible:ring-[#004a7c] hover:border-[#004a7c]/50 transition-colors"
                                     />
                                 </div>
-                                <div className="space-y-3">
-                                    <Label htmlFor="rollNumber" className="text-sm font-medium">Roll Number</Label>
-                                    <Input
-                                        id="rollNumber"
-                                        name="rollNumber"
-                                        placeholder="Enter your roll number"
-                                        value={formData.rollNumber}
-                                        onChange={handleInputChange}
-                                        required
-                                        disabled={loading}
-                                        className="h-11 focus-visible:ring-[#004a7c] hover:border-[#004a7c]/50 transition-colors"
-                                    />
-                                </div>
-                                <div className="space-y-3">
-                                    <Label htmlFor="department" className="text-sm font-medium">Department</Label>
-                                    <Select
-                                        name="department"
-                                        value={formData.department}
-                                        onValueChange={(value) => handleInputChange({
-                                            target: { name: 'department', value }
-                                        } as React.ChangeEvent<HTMLSelectElement>)}
-                                    >
-                                        <SelectTrigger className="h-11 focus:ring-[#004a7c] hover:border-[#004a7c]/50 transition-colors">
-                                            <SelectValue placeholder="Select your department" />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-white">
-                                            <SelectItem value="ENGINEERING" className="hover:bg-[#004a7c]/10 cursor-pointer transition-colors">School of Engineering</SelectItem>
-                                            <SelectItem value="LAW" className="hover:bg-[#004a7c]/10 cursor-pointer transition-colors">School of Law</SelectItem>
-                                            <SelectItem value="SCIENCE" className="hover:bg-[#004a7c]/10 cursor-pointer transition-colors">School of Science</SelectItem>
-                                            <SelectItem value="EDUCATION_AND_HUMANITIES" className="hover:bg-[#004a7c]/10 cursor-pointer transition-colors">School of Education & Humanities</SelectItem>
-                                            <SelectItem value="MANAGEMENT_AND_COMMERCE" className="hover:bg-[#004a7c]/10 cursor-pointer transition-colors">School of Management & Commerce</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-3">
-                                    <Label htmlFor="class" className="text-sm font-medium">Class</Label>
-                                    <Input
-                                        id="class"
-                                        name="class"
-                                        placeholder="Enter your class"
-                                        value={formData.class}
-                                        onChange={handleInputChange}
-                                        required
-                                        disabled={loading}
-                                        className="h-11 focus-visible:ring-[#004a7c] hover:border-[#004a7c]/50 transition-colors"
-                                    />
-                                </div>
-                                <div className="space-y-3">
-                                    <Label htmlFor="year" className="text-sm font-medium">Year</Label>
-                                    <Select
-                                        name="year"
-                                        value={formData.year ? formData.year.toString() : ""}
-                                        onValueChange={(value) => handleInputChange({
-                                            target: { name: 'year', value }
-                                        } as React.ChangeEvent<HTMLSelectElement>)}
-                                    >
-                                        <SelectTrigger className="h-11 focus:ring-[#004a7c] hover:border-[#004a7c]/50 transition-colors">
-                                            <SelectValue placeholder="Select your year" />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-white">
-                                            <SelectItem value="1" className="hover:bg-[#004a7c]/10 cursor-pointer transition-colors">First Year</SelectItem>
-                                            <SelectItem value="2" className="hover:bg-[#004a7c]/10 cursor-pointer transition-colors">Second Year</SelectItem>
-                                            <SelectItem value="3" className="hover:bg-[#004a7c]/10 cursor-pointer transition-colors">Third Year</SelectItem>
-                                            <SelectItem value="4" className="hover:bg-[#004a7c]/10 cursor-pointer transition-colors">Fourth Year</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-3">
-                                    <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                                <div className="space-y-2">
+                                    <Label htmlFor="password">Password *</Label>
                                     <Input
                                         id="password"
                                         name="password"
                                         type="password"
-                                        placeholder="Enter your password"
                                         value={formData.password}
                                         onChange={handleInputChange}
+                                        disabled={isLoading}
                                         required
-                                        disabled={loading}
-                                        className="h-11 focus-visible:ring-[#004a7c] hover:border-[#004a7c]/50 transition-colors"
                                     />
                                 </div>
-                                <div className="space-y-3">
-                                    <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password</Label>
+                                <div className="space-y-2">
+                                    <Label htmlFor="confirmPassword">Confirm Password *</Label>
                                     <Input
                                         id="confirmPassword"
                                         name="confirmPassword"
                                         type="password"
-                                        placeholder="Confirm your password"
                                         value={formData.confirmPassword}
                                         onChange={handleInputChange}
+                                        disabled={isLoading}
                                         required
-                                        disabled={loading}
-                                        className="h-11 focus-visible:ring-[#004a7c] hover:border-[#004a7c]/50 transition-colors"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="department">Department *</Label>
+                                    <Select
+                                        value={formData.department}
+                                        onValueChange={(value) => handleSelectChange('department', value)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select Department" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="CSE">Computer Science</SelectItem>
+                                            <SelectItem value="ECE">Electronics</SelectItem>
+                                            <SelectItem value="MECH">Mechanical</SelectItem>
+                                            <SelectItem value="CIVIL">Civil</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="year">Year *</Label>
+                                    <Select
+                                        value={formData.year}
+                                        onValueChange={(value) => handleSelectChange('year', value)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select Year" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="1">First Year</SelectItem>
+                                            <SelectItem value="2">Second Year</SelectItem>
+                                            <SelectItem value="3">Third Year</SelectItem>
+                                            <SelectItem value="4">Fourth Year</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="rollNumber">Roll Number *</Label>
+                                    <Input
+                                        id="rollNumber"
+                                        name="rollNumber"
+                                        value={formData.rollNumber}
+                                        onChange={handleInputChange}
+                                        disabled={isLoading}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="className">Class/Section *</Label>
+                                    <Input
+                                        id="className"
+                                        name="className"
+                                        value={formData.className}
+                                        onChange={handleInputChange}
+                                        disabled={isLoading}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="studentContact">Student Contact</Label>
+                                    <Input
+                                        id="studentContact"
+                                        name="studentContact"
+                                        value={formData.studentContact}
+                                        onChange={handleInputChange}
+                                        disabled={isLoading}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="parentName">Parent Name</Label>
+                                    <Input
+                                        id="parentName"
+                                        name="parentName"
+                                        value={formData.parentName}
+                                        onChange={handleInputChange}
+                                        disabled={isLoading}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="parentContact">Parent Contact</Label>
+                                    <Input
+                                        id="parentContact"
+                                        name="parentContact"
+                                        value={formData.parentContact}
+                                        onChange={handleInputChange}
+                                        disabled={isLoading}
                                     />
                                 </div>
                             </div>
-                            <div>
-                                <Button
-                                    type="submit"
-                                    className="w-full bg-[#004a7c] hover:bg-[#004a7c]/90 h-12 text-white text-lg font-medium mt-8"
-                                    disabled={loading}
-                                >
-                                    {loading ? (
-                                        <>
-                                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                            Registering...
-                                        </>
-                                    ) : (
-                                        'Register'
-                                    )}
-                                </Button>
-                                <div className="text-center text-sm text-gray-600 pt-4">
-                                    Already have an account?{' '}
-                                    <Link
-                                        href="/auth/login"
-                                        className="text-[#004a7c] hover:text-[#004a7c]/80 hover:underline font-medium"
-                                    >
-                                        Login
-                                    </Link>
-                                </div>
+
+                            <Button
+                                type="submit"
+                                className="w-full bg-[#004a7c] hover:bg-[#004a7c]/90"
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Registering...
+                                    </>
+                                ) : (
+                                    'Register'
+                                )}
+                            </Button>
+
+                            <div className="text-center text-sm text-gray-600">
+                                Already have an account?{' '}
+                                <Link href="/auth/login" className="text-[#004a7c] hover:underline">
+                                    Login
+                                </Link>
                             </div>
                         </form>
                     </CardContent>

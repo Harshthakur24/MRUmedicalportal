@@ -1,15 +1,32 @@
 import { NextResponse } from 'next/server';
-import { hash } from 'bcryptjs';
-import { randomBytes } from 'crypto';
 import prisma from '@/lib/prisma';
-import { sendVerificationEmail } from '@/lib/resend';
+import { hash } from 'bcryptjs';
+import { sendVerificationEmail } from '@/lib/email';
+import { randomBytes } from 'crypto';
 
 export async function POST(req: Request) {
     try {
         const data = await req.json();
-        console.log('Registration request:', data);
+        const {
+            name,
+            email,
+            password,
+            department,
+            year,
+            rollNumber,
+            className,
+            studentContact,
+            parentName,
+            parentContact
+        } = data;
 
-        const { name, email, password, rollNumber, department, class: studentClass, year, role } = data;
+        // Validate required fields
+        if (!name || !email || !password || !department || !year || !rollNumber || !className) {
+            return NextResponse.json(
+                { error: 'Missing required fields' },
+                { status: 400 }
+            );
+        }
 
         // Check if user already exists
         const existingUser = await prisma.user.findUnique({
@@ -18,63 +35,61 @@ export async function POST(req: Request) {
 
         if (existingUser) {
             return NextResponse.json(
-                { message: 'User with this email already exists' },
+                { error: 'Email already registered' },
                 { status: 400 }
             );
         }
 
+        // Hash password
+        const hashedPassword = await hash(password, 12);
+        
         // Generate verification token
         const verificationToken = randomBytes(32).toString('hex');
-        console.log('Generated verification token:', { email, verificationToken });
 
-        // Hash password
-        const hashedPassword = await hash(password, 10);
+        // Use transaction to ensure both user and account are created
+        const createdUser = await prisma.$transaction(async (prisma) => {
+            // Create user first
+            const user = await prisma.user.create({
+                data: {
+                    email,
+                    name,
+                    role: 'STUDENT',
+                    verificationToken,
+                    department,
+                    rollNumber,
+                    year,
+                    studentContact,
+                    parentName,
+                    parentContact,
+                    className,
+                    emailVerified: null // Ensure email is not verified by default
+                }
+            });
 
-        // Create user with verification token
-        const user = await prisma.user.create({
-            data: {
-                name,
-                email,
-                password: hashedPassword,
-                rollNumber,
-                department,
-                class: studentClass,
-                year: Number(year),
-                role,
-                verificationToken
-            }
+            // Create account with hashed password
+            await prisma.account.create({
+                data: {
+                    userId: user.id,
+                    type: 'credentials',
+                    provider: 'credentials',
+                    providerAccountId: email,
+                    access_token: hashedPassword
+                }
+            });
+
+            return user;
         });
 
-        console.log('User created:', { userId: user.id, email: user.email });
+        // Send verification email
+        await sendVerificationEmail(createdUser.email!, verificationToken);
 
-        try {
-            // Send verification email
-            const emailResult = await sendVerificationEmail(email, verificationToken);
-            console.log('Verification email sent:', emailResult);
-
-            return NextResponse.json(
-                { 
-                    message: 'User created successfully. Please check your email to verify your account.',
-                    user: { id: user.id, email: user.email } 
-                },
-                { status: 201 }
-            );
-        } catch (emailError) {
-            console.error('Failed to send verification email:', emailError);
-            
-            // Still return success since user was created
-            return NextResponse.json(
-                { 
-                    message: 'User created successfully, but failed to send verification email. Please contact support.',
-                    user: { id: user.id, email: user.email } 
-                },
-                { status: 201 }
-            );
-        }
+        return NextResponse.json({ 
+            message: 'Registration successful. Please check your email to verify your account.' 
+        });
     } catch (error) {
         console.error('Registration error:', error);
         return NextResponse.json(
-            { message: 'Error creating user', error: error instanceof Error ? error.message : 'Unknown error' },
+            { error: 'Failed to register user. Please try again.' },
             { status: 500 }
         );
     }

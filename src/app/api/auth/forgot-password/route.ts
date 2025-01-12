@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import prisma from '@/lib/prisma';
-import { sendPasswordResetEmail } from '@/lib/resend';
+import { sendPasswordResetEmail } from '@/lib/email';
 
 export async function POST(req: Request) {
     try {
@@ -27,14 +27,12 @@ export async function POST(req: Request) {
 
         // Generate reset token
         const token = randomBytes(32).toString('hex');
-        const expires = new Date(Date.now() + 3600000); // 1 hour from now
 
         // Save reset token
         await prisma.user.update({
             where: { id: user.id },
             data: {
-                resetPasswordToken: token,
-                resetPasswordExpires: expires
+                verificationToken: token
             }
         });
 

@@ -2,18 +2,17 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { toast } from 'sonner';
+import toast, { Toaster } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Role } from '@prisma/client';
+import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
-    const [role, setRole] = useState<Role>('STUDENT');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
@@ -25,30 +24,35 @@ export default function LoginPage() {
             const result = await signIn('credentials', {
                 email,
                 password,
-                role,
                 redirect: false,
             });
 
             if (result?.error) {
                 if (result.error === 'Please verify your email before logging in') {
                     toast.error('Please verify your email before logging in', {
-                        description: 'Check your inbox for the verification link'
+                        position: 'top-center',
                     });
                 } else {
-                    toast.error('Invalid credentials');
+                    toast.error('Invalid email or password', {
+                        position: 'top-center',
+                    });
                 }
                 return;
             }
 
-            toast.success('Login Successful!', {
-                description: 'Redirecting to dashboard...'
+            toast.success('Login successful!', {
+                position: 'top-center',
             });
 
             setTimeout(() => {
-                router.push('/dashboard');
-            }, 1500);
+                router.push('/');
+                router.refresh();
+            }, 1000);
+
         } catch (error) {
-            toast.error('An error occurred during login');
+            toast.error('An error occurred during login', {
+                position: 'top-center',
+            });
         } finally {
             setIsLoading(false);
         }
@@ -65,28 +69,6 @@ export default function LoginPage() {
                         <CardDescription className="text-center">
                             Enter your credentials to access your account
                         </CardDescription>
-                        <div className="flex justify-center space-x-4 mt-4">
-                            <button
-                                type="button"
-                                onClick={() => setRole('STUDENT')}
-                                className={`px-4 py-2 rounded-md transition-colors ${role === 'STUDENT'
-                                    ? 'bg-[#004a7c] text-white'
-                                    : 'bg-white text-[#004a7c] border border-[#004a7c]/20 hover:bg-[#004a7c]/10'
-                                    }`}
-                            >
-                                Student
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setRole('HOD')}
-                                className={`px-4 py-2 rounded-md transition-colors ${role === 'HOD'
-                                    ? 'bg-[#004a7c] text-white'
-                                    : 'bg-white text-[#004a7c] border border-[#004a7c]/20 hover:bg-[#004a7c]/10'
-                                    }`}
-                            >
-                                Admin
-                            </button>
-                        </div>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSubmit} className="space-y-4">
@@ -136,7 +118,14 @@ export default function LoginPage() {
                                 className="w-full bg-[#004a7c] hover:bg-[#004a7c]/90 h-10 text-white"
                                 disabled={isLoading}
                             >
-                                {isLoading ? 'Logging in...' : 'Login'}
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Logging in...
+                                    </>
+                                ) : (
+                                    'Login'
+                                )}
                             </Button>
                             <div className="mt-4 text-center text-sm text-gray-600">
                                 Don&apos;t have an account?{' '}
@@ -151,6 +140,7 @@ export default function LoginPage() {
                     </CardContent>
                 </Card>
             </div>
+            <Toaster position="top-center" />
         </div>
     );
 } 

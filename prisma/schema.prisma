@@ -7,83 +7,134 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-enum School {
-    ENGINEERING
-    LAW
-    SCIENCE
-    EDUCATION_AND_HUMANITIES
-    MANAGEMENT_AND_COMMERCE
+model Account {
+    id                String  @id @default(cuid())
+    userId            String
+    type              String
+    provider          String
+    providerAccountId String
+    refresh_token     String? @db.Text
+    access_token      String? @db.Text
+    expires_at        Int?
+    token_type        String?
+    scope             String?
+    id_token          String? @db.Text
+    session_state     String?
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([provider, providerAccountId])
+    @@index([userId])
+}
+
+model Session {
+    id           String   @id @default(cuid())
+    sessionToken String   @unique
+    userId       String
+    expires      DateTime
+    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
 }
 
 model User {
-    id                   String          @id @default(cuid())
-    name                 String
-    email                String          @unique
-    password             String
-    role                 Role            @default(STUDENT)
-    rollNumber           String          @unique
-    department           School
-    class                String
-    year                 Int
-    createdAt            DateTime        @default(now())
-    updatedAt            DateTime        @updatedAt
-    resetPasswordToken   String?
-    verificationToken    String?
-    emailVerified        DateTime?
-    resetPasswordExpires DateTime?
-    submittedReports     MedicalReport[] @relation("SubmittedReports")
-    reviewedReports      MedicalReport[] @relation("ReviewedReports")
+    id                String          @id @default(cuid())
+    name              String?
+    email             String?         @unique
+    password          String?         @db.Text
+    emailVerified     DateTime?
+    image             String?
+    role              Role            @default(STUDENT)
+    department        Department?
+    year              String?
+    rollNumber        String?
+    studentContact    String?
+    parentName        String?
+    parentContact     String?
+    className         String?
+    verificationToken String?
+    resetToken        String?         @db.Text
+    resetTokenExpiry  DateTime?
+    accounts          Account[]
+    sessions          Session[]
+    medicalReports    MedicalReport[]
+    comments          Comment[]
 
     @@index([email])
-    @@index([rollNumber])
 }
 
 model MedicalReport {
-    id                 String       @id @default(cuid())
-    studentId          String
-    student            User         @relation("SubmittedReports", fields: [studentId], references: [id], onDelete: Cascade)
-    studentName        String
-    rollNumber         String
-    dateOfAbsence      DateTime
-    dateTo             DateTime
-    reason             String
-    doctorName         String
-    doctorAddress      String
-    medicalCertificate String
-    status             ReportStatus @default(PENDING)
-    otherReports       String[]
-    parentName         String
-    parentContact      String
-    studentContact     String
-    className          String
-    disease            String
-    workingDays        Int
-    t1Reexam           Boolean      @default(false)
-    t1Subjects         String?
-    t2Reexam           Boolean      @default(false)
-    t2Subjects         String?
-    submissionDate     DateTime     @default(now())
-    reviewerId         String?
-    reviewer           User?        @relation("ReviewedReports", fields: [reviewerId], references: [id], onDelete: SetNull)
-    createdAt          DateTime     @default(now())
-    updatedAt          DateTime     @updatedAt
-    reviewComment      String?
-    reviewedAt         DateTime?
-    department         School
+    id                           String    @id @default(cuid())
+    studentId                    String
+    student                      User      @relation(fields: [studentId], references: [id])
+    studentName                  String    @default("")
+    submissionDate               DateTime  @default(now())
+    dateOfAbsence                DateTime
+    dateTo                       DateTime
+    doctorName                   String
+    doctorAddress                String
+    medicalCertificate           String
+    parentName                   String
+    parentContact                String
+    studentContact               String
+    className                    String
+    disease                      String
+    workingDays                  Int
+    t1Reexam                     Boolean   @default(false)
+    t1Subjects                   String?
+    t2Reexam                     Boolean   @default(false)
+    t2Subjects                   String?
+    status                       Status    @default(PENDING)
+    otherReports                 String[]
+    department                   String
+    currentApprovalLevel         String    @default("PROGRAM_COORDINATOR")
+    approvedByProgramCoordinator Boolean   @default(false)
+    approvedByHOD                Boolean   @default(false)
+    approvedByDeanAcademics      Boolean   @default(false)
+    deanAcademicsComment         String?
+    hodComment                   String?
+    programCoordinatorComment    String?
+    reviewerId                   String?
+    reviewedAt                   DateTime?
+    reviewComment                String?
+    comments                     Comment[]
+    createdAt                    DateTime  @default(now())
+    updatedAt                    DateTime  @updatedAt
 
     @@index([studentId])
-    @@index([reviewerId])
-    @@index([status])
+}
+
+model Comment {
+    id        String        @id @default(cuid())
+    content   String
+    authorId  String
+    author    User          @relation(fields: [authorId], references: [id])
+    reportId  String
+    report    MedicalReport @relation(fields: [reportId], references: [id])
+    createdAt DateTime      @default(now())
+    updatedAt DateTime      @updatedAt
+
+    @@index([authorId])
+    @@index([reportId])
 }
 
 enum Role {
-    ADMIN
-    HOD
-    PROGRAM_COORDINATOR
     STUDENT
+    PROGRAM_COORDINATOR
+    HOD
+    DEAN_ACADEMICS
+    ADMIN
 }
 
-enum ReportStatus {
+enum Department {
+    CSE
+    ECE
+    EEE
+    MECH
+    CIVIL
+}
+
+enum Status {
     APPROVED
     PENDING
     REJECTED

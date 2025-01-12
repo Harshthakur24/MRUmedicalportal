@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { toast } from 'sonner';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { toast, Toaster } from 'sonner';
 
 export default function ResetPasswordPage() {
     const router = useRouter();
@@ -45,10 +45,14 @@ export default function ResetPasswordPage() {
                 throw new Error(error.message || 'Failed to reset password');
             }
 
-            toast.success('Password reset successful');
+            toast.success('Password reset successfully!', {
+                position: 'top-center',
+            });
             router.push('/auth/login');
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Failed to reset password');
+            toast.error('Failed to reset password', {
+                position: 'top-center',
+            });
         } finally {
             setIsLoading(false);
         }
@@ -147,6 +151,7 @@ export default function ResetPasswordPage() {
                     </CardContent>
                 </Card>
             </div>
+            <Toaster position="top-center" />
         </div>
     );
 } 

@@ -23,12 +23,24 @@ export default function Home() {
               MRU Medical Compliance Portal
             </h2>
           </div>
-          <nav className="space-x-6">
+          <nav className="space-x-6 flex items-center">
             <Link href="/auth/login" className="hover:text-blue-200 transition">Login</Link>
             <Link href="/auth/register" className="hover:text-blue-200 transition">Register</Link>
             <Link href="/dashboard" className="hover:text-blue-200 transition">Dashboard</Link>
             <Link href="/submit-report" className="hover:text-blue-200 transition">Submit Report</Link>
             <Link href="/help" className="hover:text-blue-200 transition">Help</Link>
+            <Link
+              href="/profile"
+              className="ml-4 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 transition flex items-center justify-center"
+            >
+              <Image
+                src="/avatar-image.jpg"
+                alt="Profile"
+                width={32}
+                height={32}
+                className="rounded-full"
+              />
+            </Link>
           </nav>
         </div>
       </header>

@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import prisma from '@/lib/prisma';
-import { authOptions } from '@/lib/auth.config';
-import { ReportStatus, School } from '@prisma/client';
+import { auth } from '@/lib/auth';
 
 export async function GET() {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await auth();
         
         if (!session?.user) {
             return NextResponse.json(
@@ -26,14 +24,14 @@ export async function GET() {
                 prisma.medicalReport.count({
                     where: {
                         studentId: session.user.id,
-                        status: ReportStatus.PENDING
+                        status: 'PENDING'
                     }
                 }),
                 // Rejected reports
                 prisma.medicalReport.count({
                     where: {
                         studentId: session.user.id,
-                        status: ReportStatus.REJECTED
+                        status: 'REJECTED'
                     }
                 }),
                 // Recent reports
@@ -42,7 +40,7 @@ export async function GET() {
                     orderBy: { createdAt: 'desc' },
                     take: 5,
                     include: {
-                        reviewer: {
+                        student: {
                             select: {
                                 name: true,
                                 role: true
@@ -62,30 +60,25 @@ export async function GET() {
 
         // For HOD and ADMIN
         if (session.user.role === 'HOD' || session.user.role === 'ADMIN') {
+            const whereClause = session.user.role === 'HOD' && session.user.department 
+                ? { department: session.user.department }
+                : undefined;
+
             const stats = await prisma.$transaction([
                 // Total reports
-                prisma.medicalReport.count(),
+                prisma.medicalReport.count({
+                    where: whereClause
+                }),
                 // Pending reports
                 prisma.medicalReport.count({
-                    where: { status: 'PENDING' }
+                    where: {
+                        ...whereClause,
+                        status: 'PENDING'
+                    }
                 }),
-                // Reports by department (for HOD)
-                ...(session.user.role === 'HOD' ? [
-                    prisma.medicalReport.count({
-                        where: {
-                            student: {
-                                department: session.user.department as School
-                            }
-                        }
-                    })
-                ] : []),
                 // Recent reports
                 prisma.medicalReport.findMany({
-                    where: session.user.role === 'HOD' ? {
-                        student: {
-                            department: session.user.department as School
-                        }
-                    } : {},
+                    where: whereClause,
                     orderBy: { createdAt: 'desc' },
                     take: 10,
                     include: {
@@ -110,10 +103,7 @@ export async function GET() {
             return NextResponse.json({
                 totalReports: stats[0],
                 pendingReports: stats[1],
-                ...(session.user.role === 'HOD' && {
-                    departmentReports: stats[2],
-                }),
-                recentReports: stats[session.user.role === 'HOD' ? 3 : 2],
+                recentReports: stats[2],
                 ...(session.user.role === 'ADMIN' && {
                     statusDistribution: stats[3]
                 })

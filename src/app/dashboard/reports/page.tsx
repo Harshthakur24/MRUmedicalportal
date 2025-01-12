@@ -3,15 +3,24 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, Filter, RefreshCw } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { redirect } from 'next/navigation';
 
 interface Report {
     id: string;
-    studentName: string;
+    student: {
+        name: string | null;
+        email: string | null;
+        department: string | null;
+    };
+    disease: string;
+    status: string;
     submissionDate: string;
-    reason: string;
-    status: 'PENDING' | 'APPROVED' | 'REJECTED';
-    medicalCertificate: string;
+    currentApprovalLevel: string;
+    approvedByProgramCoordinator: boolean;
+    approvedByHOD: boolean;
+    approvedByDeanAcademics: boolean;
 }
 
 const ReportsSkeleton = () => {
@@ -49,32 +58,49 @@ const ReportsSkeleton = () => {
 }
 
 export default function ReportsPage() {
+    useSession({
+        required: true,
+        onUnauthenticated() {
+            redirect('/auth/login');
+        }
+    });
     const [reports, setReports] = useState<Report[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState<string>('all');
-
-    useEffect(() => {
-        fetchReports();
-    }, []);
+    const [statusFilter, setStatusFilter] = useState('all');
 
     const fetchReports = async () => {
         setIsLoading(true);
         try {
             const response = await fetch('/api/reports');
-            if (!response.ok) throw new Error('Failed to fetch reports');
             const data = await response.json();
-            setReports(data);
+
+            // Filter reports based on program coordinator's view
+            const filteredReports = data.filter((report: Report) => {
+                return (
+                    (!report.approvedByProgramCoordinator && !report.approvedByHOD && !report.approvedByDeanAcademics) ||
+                    (report.approvedByProgramCoordinator && !report.approvedByHOD && !report.approvedByDeanAcademics)
+                );
+            });
+
+            setReports(filteredReports);
         } catch (error) {
-            console.error('Error fetching reports:', error);
+            console.error('Failed to fetch reports:', error);
         } finally {
             setIsLoading(false);
         }
     };
 
+    useEffect(() => {
+        fetchReports();
+    }, []);
+
     const filteredReports = reports.filter(report => {
-        const matchesSearch = report.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            report.reason.toLowerCase().includes(searchTerm.toLowerCase());
+        const studentName = report.student?.name || '';
+        const disease = report.disease || '';
+        const matchesSearch =
+            studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            disease.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = statusFilter === 'all' || report.status === statusFilter;
         return matchesSearch && matchesStatus;
     });
@@ -99,7 +125,7 @@ export default function ReportsPage() {
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
                             type="text"
-                            placeholder="Search by student name or reason..."
+                            placeholder="Search by student name or disease..."
                             className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -127,7 +153,7 @@ export default function ReportsPage() {
                                 <tr>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Student Name</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Submitted Date</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Reason</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Disease</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
@@ -159,7 +185,7 @@ export default function ReportsPage() {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
                         type="text"
-                        placeholder="Search by student name or reason..."
+                        placeholder="Search by student name or disease..."
                         className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -187,7 +213,7 @@ export default function ReportsPage() {
                             <tr>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Student Name</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Submitted Date</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Reason</th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Disease</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -199,20 +225,24 @@ export default function ReportsPage() {
                                 {filteredReports.map((report) => (
                                     <tr key={report.id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="font-medium text-gray-900">{report.studentName}</div>
+                                            <div className="font-medium text-gray-900">{report.student?.name || 'N/A'}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-gray-500">
                                             {new Date(report.submissionDate).toLocaleDateString()}
                                         </td>
                                         <td className="px-6 py-4 text-gray-500">
-                                            <div className="max-w-xs truncate">{report.reason}</div>
+                                            <div className="max-w-xs truncate">{report.disease}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                ${report.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                                                    report.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
-                                                        'bg-yellow-100 text-yellow-800'}`}>
-                                                {report.status}
+                                                ${report.currentApprovalLevel === 'PROGRAM_COORDINATOR'
+                                                    ? 'bg-yellow-100 text-yellow-800'
+                                                    : report.currentApprovalLevel === 'HOD'
+                                                        ? 'bg-blue-100 text-blue-800'
+                                                        : report.currentApprovalLevel === 'DEAN_ACADEMICS'
+                                                            ? 'bg-purple-100 text-purple-800'
+                                                            : 'bg-green-100 text-green-800'}`}>
+                                                {report.currentApprovalLevel.replace('_', ' ')}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -238,11 +268,6 @@ export default function ReportsPage() {
                         )}
                     </table>
                 </div>
-                {!isLoading && filteredReports.length === 0 && (
-                    <div className="text-center py-12">
-                        <p className="text-gray-500 text-lg">No reports found matching your criteria</p>
-                    </div>
-                )}
             </div>
         </div>
     );

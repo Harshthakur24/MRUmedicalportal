@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { toast } from 'sonner';
+import { toast, Toaster } from 'sonner';
 import { useRouter } from 'next/navigation';
 
 interface Report {
@@ -235,6 +235,7 @@ export default function ReportReviewModal({ report, isOpen, onClose }: ReportRev
                     </div>
                 </div>
             </DialogContent>
+            <Toaster position="top-center" />
         </Dialog>
     );
 } 

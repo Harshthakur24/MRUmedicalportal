@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'react-hot-toast';
+import { toast, Toaster } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,6 @@ type FormData = {
     rollNumber: string;
     dateOfAbsence: string;
     dateTo: string;
-    reason: string;
     doctorName: string;
     doctorAddress: string;
     parentName: string;
@@ -31,77 +30,88 @@ type FormData = {
     t2Subjects?: string;
 };
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+
 export default function MedicalReportForm() {
     const { data: session } = useSession();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const { register, handleSubmit } = useForm<FormData>();
     const [file, setFile] = useState<File | null>(null);
+    const [fileError, setFileError] = useState<string>('');
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            if (file.size > 5 * 1024 * 1024) { // 5MB limit
-                toast.error('File size should be less than 5MB');
-                return;
-            }
-            setFile(file);
+        const selectedFile = e.target.files?.[0];
+        setFileError('');
+
+        if (!selectedFile) {
+            setFile(null);
+            return;
         }
+
+        // Validate file size
+        if (selectedFile.size > MAX_FILE_SIZE) {
+            setFileError('File size should be less than 5MB');
+            setFile(null);
+            return;
+        }
+
+        // Validate file type
+        if (!ALLOWED_FILE_TYPES.includes(selectedFile.type)) {
+            setFileError('Only PDF, JPG, and PNG files are allowed');
+            setFile(null);
+            return;
+        }
+
+        setFile(selectedFile);
     };
 
     const onSubmit = async (data: FormData) => {
+        if (!file) {
+            setFileError('Please upload a medical certificate');
+            return;
+        }
+
         setLoading(true);
         try {
-            if (!file) {
-                toast.error('Please upload a medical certificate');
-                setLoading(false);
-                return;
-            }
-
             // Convert file to base64
             const fileBase64 = await new Promise<string>((resolve, reject) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
                 reader.onload = () => {
-                    try {
-                        const base64String = reader.result as string;
-                        if (!base64String) {
-                            throw new Error('Failed to read file');
-                        }
-                        const base64Data = base64String.split(',')[1];
-                        if (!base64Data) {
-                            throw new Error('Invalid file format');
-                        }
-                        resolve(base64Data);
-                    } catch (e) {
-                        reject(e);
+                    const base64String = reader.result as string;
+                    const base64Data = base64String.split(',')[1];
+                    if (!base64Data) {
+                        reject(new Error('Failed to convert file to base64'));
+                        return;
                     }
+                    resolve(base64Data);
                 };
                 reader.onerror = () => reject(new Error('Failed to read file'));
             });
 
             const requestData = {
-                studentName: String(data.studentName || ''),
-                rollNumber: String(data.rollNumber || ''),
-                dateOfAbsence: String(data.dateOfAbsence || ''),
-                dateTo: String(data.dateTo || ''),
-                reason: String(data.reason || ''),
-                doctorName: String(data.doctorName || ''),
-                doctorAddress: String(data.doctorAddress || ''),
-                parentName: String(data.parentName || ''),
-                parentContact: String(data.parentContact || ''),
-                studentContact: String(data.studentContact || ''),
-                className: String(data.className || ''),
-                disease: String(data.disease || ''),
-                workingDays: Number(data.workingDays) || 0,
+                studentName: data.studentName || session?.user?.name || '',
+                rollNumber: data.rollNumber || session?.user?.rollNumber || '',
+                dateOfAbsence: data.dateOfAbsence,
+                dateTo: data.dateTo,
+                doctorName: data.doctorName,
+                doctorAddress: data.doctorAddress,
+                parentName: data.parentName,
+                parentContact: data.parentContact,
+                studentContact: data.studentContact,
+                className: data.className,
+                disease: data.disease,
+                workingDays: Number(data.workingDays),
                 t1Reexam: Boolean(data.t1Reexam),
-                t1Subjects: String(data.t1Subjects || ''),
+                t1Subjects: data.t1Subjects || '',
                 t2Reexam: Boolean(data.t2Reexam),
-                t2Subjects: String(data.t2Subjects || ''),
+                t2Subjects: data.t2Subjects || '',
                 medicalCertificate: {
                     data: fileBase64,
-                    filename: String(file.name),
-                    contentType: String(file.type)
+                    filename: file.name,
+                    contentType: file.type
                 }
             };
 
@@ -318,6 +328,9 @@ export default function MedicalReportForm() {
                             required
                             className="mt-2"
                         />
+                        {fileError && (
+                            <p className="text-sm text-red-500 mt-1">{fileError}</p>
+                        )}
                         <p className="text-sm text-gray-500 mt-1">
                             Upload medical certificate (PDF, JPG, PNG, max 5MB)
                         </p>
@@ -332,6 +345,7 @@ export default function MedicalReportForm() {
             >
                 {loading ? 'Submitting...' : 'Submit Report'}
             </Button>
+            <Toaster position="top-center" />
         </form>
     );
 } 

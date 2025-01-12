@@ -1,108 +1,132 @@
-import { DefaultSession, NextAuthOptions, User } from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import { compare } from 'bcryptjs';
-import prisma from '@/lib/prisma';
-import { Role, School } from '@prisma/client';
+import type { Session, User } from "next-auth";
+import type { JWT } from "next-auth/jwt";
+import { compare } from "bcryptjs";
+import { getEmailRole } from "./constants";
+import prisma from "./prisma";
 
-declare module "next-auth" {
-    interface Session extends DefaultSession {
-        user: {
-            id: string;
-            role: Role;
-            rollNumber: string;
-            department: School;
-        } & DefaultSession["user"]
-    }
+type ExtendedUser = User & {
+    role: string;
+    department: string | null;
+    year: string | null;
+    rollNumber: string | null;
+};
 
-    interface User {
-        id: string;
-        email: string;
-        name: string;
-        role: Role;
-        rollNumber: string;
-        department: School;
-    }
+interface Credentials {
+    email: string;
+    password: string;
 }
 
-declare module "next-auth/jwt" {
-    interface JWT {
-        id: string;
-        role: Role;
-        rollNumber: string;
-        department: School;
-    }
-}
-
-export const authOptions: NextAuthOptions = {
-    providers: [
-        CredentialsProvider({
-            name: 'Credentials',
-            credentials: {
-                email: { label: 'Email', type: 'email' },
-                password: { label: 'Password', type: 'password' },
-                role: { label: 'Role', type: 'text' }
-            },
-            async authorize(credentials) {
-                try {
-                    if (!credentials?.email || !credentials?.password || !credentials?.role) {
-                        console.log('Missing credentials');
-                        return null;
-                    }
-
-                    const user = await prisma.user.findFirst({
-                        where: {
-                            email: credentials.email,
-                            role: credentials.role as Role
-                        }
-                    });
-
-                    if (!user) {
-                        throw new Error('Invalid credentials');
-                    }
-
-                    const isPasswordValid = await compare(credentials.password, user.password);
-
-                    if (!isPasswordValid) {
-                        throw new Error('Invalid credentials');
-                    }
-
-                    return {
-                        id: user.id,
-                        email: user.email,
-                        name: user.name,
-                        role: user.role,
-                        rollNumber: user.rollNumber,
-                        department: user.department
-                    } as unknown as User;
-                } catch (error) {
-                    console.error('Login error:', error);
-                    throw error;
-                }
-            }
-        })
-    ],
+export const authConfig = {
     pages: {
         signIn: '/auth/login',
-        error: '/auth/login',
+        verifyRequest: '/auth/verify',
+        error: '/auth/error',
     },
-    callbacks: {
-        async jwt({ token, user }) {
-            if (user) {
-                token.id = user.id;
-                token.role = user.role;
-                token.rollNumber = user.rollNumber;
-                token.department = user.department;
+    providers: [
+        {
+            id: 'credentials',
+            name: 'Credentials',
+            type: 'credentials',
+            credentials: {
+                email: { label: "Email", type: "email" },
+                password: { label: "Password", type: "password" }
+            },
+            async authorize(credentials: Credentials | undefined) {
+                if (!credentials?.email || !credentials?.password) {
+                    throw new Error('Missing credentials');
+                }
+
+                const user = await prisma.user.findUnique({
+                    where: { email: credentials.email },
+                    include: {
+                        accounts: {
+                            where: {
+                                provider: 'credentials'
+                            }
+                        }
+                    }
+                });
+
+                if (!user || !user.accounts[0]?.access_token) {
+                    throw new Error('Invalid credentials');
+                }
+
+                if (!user.emailVerified) {
+                    throw new Error('Please verify your email first');
+                }
+
+                const isValid = await compare(credentials.password, user.accounts[0].access_token);
+                if (!isValid) {
+                    throw new Error('Invalid credentials');
+                }
+
+                return {
+                    id: user.id,
+                    email: user.email,
+                    name: user.name,
+                    role: user.role,
+                    department: user.department,
+                    year: user.year,
+                    rollNumber: user.rollNumber
+                };
             }
-            return token;
         },
-        async session({ session, token }) {
-            if (token && session.user) {
-                session.user.id = token.id;
-                session.user.role = token.role;
-                session.user.rollNumber = token.rollNumber;
-                session.user.department = token.department;
+        {
+            id: 'email',
+            name: 'Email',
+            type: 'email',
+            async sendVerificationRequest({ identifier }: { identifier: string }) {
+                const emailInfo = getEmailRole(identifier);
+                if (!emailInfo || emailInfo.role === 'STUDENT') {
+                    throw new Error('Invalid admin email');
+                }
+
+                // Send OTP email to admin
+                // Implementation in email.ts
+            }
+        }
+    ],
+    callbacks: {
+        async signIn({ user, account }: { user: Partial<ExtendedUser>; account: { provider: string } | null }) {
+            // For admin email login
+            if (account?.provider === 'email') {
+                const emailInfo = getEmailRole(user.email!);
+                if (!emailInfo || emailInfo.role === 'STUDENT') {
+                    return false;
+                }
+                return true;
+            }
+
+            // For student credentials login
+            if (account?.provider === 'credentials') {
+                return true;
+            }
+
+            return false;
+        },
+        async session({ session, token }: { session: Session; token: JWT }) {
+            if (session.user) {
+                session.user.id = token.sub!;
+                session.user.role = token.role as string;
+                session.user.department = token.department as string | null;
+                session.user.year = token.year as string | null;
+                session.user.rollNumber = token.rollNumber as string | null;
             }
             return session;
+        },
+        async jwt({ token, user }: { token: JWT; user?: Partial<ExtendedUser> }) {
+            if (user) {
+                const dbUser = await prisma.user.findUnique({
+                    where: { id: user.id! }
+                });
+                if (dbUser) {
+                    token.role = dbUser.role;
+                    token.department = dbUser.department;
+                    token.year = dbUser.year;
+                    token.rollNumber = dbUser.rollNumber;
+                }
+            }
+            return token;
         }
     }
-}; 
+} as const; 

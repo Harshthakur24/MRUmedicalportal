@@ -1,107 +1,120 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import prisma from '@/lib/prisma';
-import { uploadToCloudinary } from '@/lib/cloudinary';
-import { authOptions } from '@/lib/auth.config';
+import { auth } from '@/lib/auth';
+import { Prisma } from '@prisma/client';
+import { v2 as cloudinary } from 'cloudinary';
+
+// Configure Cloudinary
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 export async function POST(req: Request) {
     try {
-        const session = await getServerSession(authOptions);
-        console.log('Session:', session);
-        
-        if (!session?.user?.id) {
-            console.log('No session or user ID');
-            return NextResponse.json(
-                { error: 'Authentication required' },
-                { status: 401 }
-            );
+        const session = await auth();
+        if (!session?.user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        console.log('Authenticated user:', {
-            id: session.user.id,
-            name: session.user.name,
-            rollNumber: session.user.rollNumber
-        });
+        const data = await req.json();
 
-        let data;
-        try {
-            const rawData = await req.text();
-            data = JSON.parse(rawData);
-        } catch (error) {
-            console.error('Failed to parse request data:', error);
-            return NextResponse.json(
-                { error: 'Invalid request format' },
-                { status: 400 }
-            );
+        // Validate required fields
+        const requiredFields = [
+            'dateOfAbsence',
+            'dateTo',
+            'doctorName',
+            'doctorAddress',
+            'parentName',
+            'parentContact',
+            'studentContact',
+            'className',
+            'disease',
+            'workingDays'
+        ];
+
+        for (const field of requiredFields) {
+            if (!data[field]) {
+                return NextResponse.json(
+                    { error: `Missing required field: ${field}` },
+                    { status: 400 }
+                );
+            }
         }
 
-        if (!data || typeof data !== 'object') {
-            return NextResponse.json(
-                { error: 'Invalid request data' },
-                { status: 400 }
-            );
-        }
+        // Upload medical certificate to Cloudinary
+        let medicalCertificateUrl = '';
+        if (data.medicalCertificate?.data) {
+            try {
+                // Remove data:image/[type];base64, prefix if present
+                const base64String = data.medicalCertificate.data.includes('base64,') 
+                    ? data.medicalCertificate.data.split('base64,')[1] 
+                    : data.medicalCertificate.data;
 
-        if (!data.medicalCertificate?.data) {
+                const uploadResponse = await cloudinary.uploader.upload(
+                    `data:${data.medicalCertificate.contentType};base64,${base64String}`,
+                    {
+                        folder: 'medical_certificates',
+                        resource_type: 'auto'
+                    }
+                );
+                medicalCertificateUrl = uploadResponse.secure_url;
+            } catch (error) {
+                console.error('Failed to upload medical certificate:', error);
+                return NextResponse.json(
+                    { error: 'Failed to upload medical certificate. Please try again.' },
+                    { status: 500 }
+                );
+            }
+        } else {
             return NextResponse.json(
                 { error: 'Medical certificate is required' },
                 { status: 400 }
             );
         }
+        
+        // Create medical report
+        const report = await prisma.medicalReport.create({
+            data: {
+                studentId: session.user.id,
+                dateOfAbsence: new Date(data.dateOfAbsence),
+                dateTo: new Date(data.dateTo),
+                doctorName: data.doctorName,
+                doctorAddress: data.doctorAddress,
+                medicalCertificate: medicalCertificateUrl,
+                parentName: data.parentName,
+                parentContact: data.parentContact,
+                studentContact: data.studentContact,
+                className: data.className,
+                disease: data.disease,
+                workingDays: parseInt(data.workingDays),
+                t1Reexam: Boolean(data.t1Reexam),
+                t1Subjects: data.t1Subjects || null,
+                t2Reexam: Boolean(data.t2Reexam),
+                t2Subjects: data.t2Subjects || null,
+                department: session.user.department || '',
+                status: 'PENDING',
+                currentApprovalLevel: 'PROGRAM_COORDINATOR'
+            },
+            include: {
+                student: {
+                    select: {
+                        name: true,
+                        email: true,
+                        department: true,
+                        rollNumber: true,
+                        year: true
+                    }
+                }
+            }
+        });
 
-        try {
-            const medicalCertificateUrl = await uploadToCloudinary({
-                data: data.medicalCertificate.data,
-                filename: data.medicalCertificate.filename || 'medical_certificate',
-                contentType: data.medicalCertificate.contentType || 'application/octet-stream'
-            });
-
-            const report = await prisma.medicalReport.create({
-                data: {
-                    studentId: session.user.id,
-                    studentName: data.studentName || session.user.name || '',
-                    rollNumber: data.rollNumber || session.user.rollNumber || '',
-                    dateOfAbsence: new Date(data.dateOfAbsence || Date.now()),
-                    dateTo: new Date(data.dateTo || Date.now()),
-                    reason: data.reason || data.disease || '',
-                    doctorName: data.doctorName || '',
-                    doctorAddress: data.doctorAddress || '',
-                    medicalCertificate: medicalCertificateUrl,
-                    parentName: data.parentName || '',
-                    parentContact: data.parentContact || '',
-                    studentContact: data.studentContact || '',
-                    className: data.className || '',
-                    disease: data.disease || data.reason || '',
-                    workingDays: Number(data.workingDays) || 0,
-                    t1Reexam: Boolean(data.t1Reexam),
-                    t1Subjects: data.t1Subjects || '',
-                    t2Reexam: Boolean(data.t2Reexam),
-                    t2Subjects: data.t2Subjects || '',
-                    status: 'PENDING',
-                    otherReports: [],
-                    department: session.user.department,
-                },
-            });
-
-            return NextResponse.json(
-                { 
-                    success: true, 
-                    message: 'Report submitted successfully',
-                    data: report 
-                },
-                { status: 201 }
-            );
-        } catch (error) {
-            console.error('Operation failed:', error);
-            return NextResponse.json(
-                { error: 'Failed to process request' },
-                { status: 500 }
-            );
-        }
+        return NextResponse.json(report);
     } catch (error) {
-        console.error('Request error:', error);
+        console.error('Error creating report:', error);
         return NextResponse.json(
-            { error: 'Internal server error' },
+            { error: 'Failed to create report' },
             { status: 500 }
         );
     }
@@ -109,19 +122,59 @@ export async function POST(req: Request) {
 
 export async function GET() {
     try {
-        const reports = await prisma.medicalReport.findMany({
-            orderBy: {
-                submissionDate: 'desc'
-            },
-            select: {
-                id: true,
-                studentName: true,
-                submissionDate: true,
-                reason: true,
-                status: true,
-                medicalCertificate: true
-            }
-        });
+        const session = await auth();
+        if (!session?.user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        let reports;
+        if (session.user.role === 'STUDENT') {
+            // Students can only see their own reports
+            reports = await prisma.medicalReport.findMany({
+                where: {
+                    studentId: session.user.id
+                },
+                include: {
+                    student: {
+                        select: {
+                            name: true,
+                            email: true,
+                            department: true,
+                            rollNumber: true,
+                            year: true
+                        }
+                    }
+                },
+                orderBy: {
+                    createdAt: 'desc'
+                }
+            });
+        } else {
+            // Admin, HOD, and Program Coordinators can see all reports
+            // with optional department filtering
+            const where: Prisma.MedicalReportWhereInput = 
+                session.user.role === 'HOD' || session.user.role === 'PROGRAM_COORDINATOR'
+                    ? { department: session.user.department || undefined }
+                    : {};
+
+            reports = await prisma.medicalReport.findMany({
+                where,
+                include: {
+                    student: {
+                        select: {
+                            name: true,
+                            email: true,
+                            department: true,
+                            rollNumber: true,
+                            year: true
+                        }
+                    }
+                },
+                orderBy: {
+                    createdAt: 'desc'
+                }
+            });
+        }
 
         return NextResponse.json(reports);
     } catch (error) {
