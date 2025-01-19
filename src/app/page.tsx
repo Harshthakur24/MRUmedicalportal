@@ -60,11 +60,11 @@ export default function Home() {
               Streamlined medical report submission and tracking for university students and health administrators.
             </p>
             <div className="mt-8 flex justify-center space-x-4">
-              <Link href="/submit-report">
+              {session.data?.user?.role === 'STUDENT' && <Link href="/submit-report">
                 <Button className="bg-[#007bff] hover:bg-[#0056b3] px-10 py-5 text-lg font-semibold rounded-3xl text-white hover:scale-105 transition duration-50">
                   Submit Medical Report
                 </Button>
-              </Link>
+              </Link>}
               {session.data?.user?.role === 'PROGRAM_COORDINATOR' || session.data?.user?.role === 'HOD' || session.data?.user?.role === 'DEAN_ACADEMICS' && <Link href="/dashboard/reports">
                 <Button variant="outline" className="border-[#004a7c] text-[#004a7c] hover:bg-gray-100 px-10 py-5 text-lg font-semibold rounded-3xl hover:scale-105 transition duration-50">
                   View Dashboard
