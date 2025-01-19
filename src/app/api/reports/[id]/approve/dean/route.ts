@@ -2,19 +2,15 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
-interface RouteContext {
-    params: {
-        id: string;
-    };
-}
-
 export async function POST(
     request: Request,
-    { params }: RouteContext
+    { params }: { params: { id: string } }
 ) {
     try {
-        const session = await auth();
-        const { id } = params;
+        const [session, { id }] = await Promise.all([
+            auth(),
+            Promise.resolve(params)
+        ]);
 
         if (!session?.user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -45,11 +41,10 @@ export async function POST(
         const updatedReport = await prisma.medicalReport.update({
             where: { id },
             data: {
-                approvedByDeanAcademics: data.approved,
-                deanAcademicsComment: data.comment,
-                currentApprovalLevel: data.approved ? 'COMPLETED' : 'DEAN_ACADEMICS',
+                approvedByDeanAcademics: true,
                 status: data.approved ? 'APPROVED' : 'REJECTED',
-                reviewerId: session.user?.id ?? '',
+                currentApprovalLevel: data.approved ? 'COMPLETED' : 'DEAN_ACADEMICS',
+                reviewerId: session.user.id,
                 reviewedAt: new Date(),
                 reviewComment: data.comment
             },

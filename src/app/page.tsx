@@ -4,8 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GraduationCap, FileText, Shield } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
 
 export default function Home() {
+  const session = useSession();
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header Section */}
@@ -25,9 +27,10 @@ export default function Home() {
           </div>
           <nav className="space-x-6 flex items-center">
             <Link href="/auth/login" className="hover:text-blue-200 transition">Login</Link>
-            <Link href="/auth/register" className="hover:text-blue-200 transition">Register</Link>
-            <Link href="/dashboard" className="hover:text-blue-200 transition">Dashboard</Link>
-            <Link href="/submit-report" className="hover:text-blue-200 transition">Submit Report</Link>
+            {session.data?.user?.role === 'STUDENT' && <Link href="/auth/register" className="hover:text-blue-200 transition">Register</Link>}
+            {session.data?.user?.role === 'PROGRAM_COORDINATOR' || session.data?.user?.role === 'HOD' || session.data?.user?.role === 'DEAN_ACADEMICS' && <Link href="/dashboard/reports" className="hover:text-blue-200 transition">Dashboard</Link>}
+            {session.data?.user?.role === 'STUDENT' && <Link href="/dashboard/" className="hover:text-blue-200 transition">Dashboard</Link>}
+            {session.data?.user?.role === 'STUDENT' && <Link href="/submit-report" className="hover:text-blue-200 transition">Submit Report</Link>}
             <Link href="/help" className="hover:text-blue-200 transition">Help</Link>
             <Link
               href="/profile"
@@ -62,11 +65,16 @@ export default function Home() {
                   Submit Medical Report
                 </Button>
               </Link>
-              <Link href="/dashboard">
+              {session.data?.user?.role === 'PROGRAM_COORDINATOR' || session.data?.user?.role === 'HOD' || session.data?.user?.role === 'DEAN_ACADEMICS' && <Link href="/dashboard/reports">
                 <Button variant="outline" className="border-[#004a7c] text-[#004a7c] hover:bg-gray-100 px-10 py-5 text-lg font-semibold rounded-3xl hover:scale-105 transition duration-50">
                   View Dashboard
                 </Button>
-              </Link>
+              </Link>}
+              {session.data?.user?.role === 'STUDENT' && <Link href="/dashboard">
+                <Button variant="outline" className="border-[#004a7c] text-[#004a7c] hover:bg-gray-100 px-10 py-5 text-lg font-semibold rounded-3xl hover:scale-105 transition duration-50">
+                  View Dashboard
+                </Button>
+              </Link>}
             </div>
           </div>
         </div>

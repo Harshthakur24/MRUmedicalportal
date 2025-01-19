@@ -63,37 +63,62 @@ export default function ReportReviewPage() {
         fetchReport();
     }, [params.id, router]);
 
-    const handleReview = async (status: 'APPROVED' | 'REJECTED') => {
-        if (!comment.trim() && status === 'REJECTED') {
+    const handleReview = async (action: 'approve' | 'reject') => {
+        if (!comment.trim() && action === 'reject') {
             toast.error('Please provide a comment for rejection');
             return;
         }
 
         try {
             setIsSubmitting(true);
-            const response = await fetch(`/api/reports/${params.id}/review`, {
+
+            // Get user role from session
+            const session = await fetch('/api/auth/session');
+            const sessionData = await session.json();
+            const userRole = sessionData?.user?.role;
+
+            // Determine the correct API endpoint based on role
+            let endpoint = '';
+            switch (userRole) {
+                case 'PROGRAM_COORDINATOR':
+                    endpoint = `/api/reports/${params.id}/approve/program-coordinator`;
+                    break;
+                case 'HOD':
+                    endpoint = `/api/reports/${params.id}/approve/hod`;
+                    break;
+                case 'DEAN_ACADEMICS':
+                    endpoint = `/api/reports/${params.id}/approve/dean`;
+                    break;
+                default:
+                    throw new Error('Unauthorized role');
+            }
+
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    status,
-                    comment,
+                    approved: action === 'approve',
+                    comment
                 }),
             });
 
             if (!response.ok) throw new Error('Failed to review report');
 
-            setReport(prev => prev ? { ...prev, status } : null);
+            const updatedReport = await response.json();
+            setReport(updatedReport);
 
             toast.success(
-                status === 'APPROVED'
+                action === 'approve'
                     ? 'Medical report has been approved ✅'
                     : 'Medical report has been rejected ❌'
             );
 
+            router.refresh();
         } catch (error) {
             toast.error('Failed to submit review');
+            console.error('Review error:', error);
         } finally {
             setIsSubmitting(false);
         }
@@ -403,7 +428,7 @@ export default function ReportReviewPage() {
 
                                 <div className="flex gap-4">
                                     <Button
-                                        onClick={() => handleReview('APPROVED')}
+                                        onClick={() => handleReview('approve')}
                                         disabled={isSubmitting}
                                         className={`flex-1 bg-green-600 h-10 p-2 hover:bg-green-700 text-white ${report.status === 'APPROVED' ? 'opacity-50' : ''}`}
                                     >
@@ -415,7 +440,7 @@ export default function ReportReviewPage() {
                                         {report.status === 'APPROVED' ? 'Already Approved' : 'Approve Report'}
                                     </Button>
                                     <Button
-                                        onClick={() => handleReview('REJECTED')}
+                                        onClick={() => handleReview('reject')}
                                         disabled={isSubmitting}
                                         className={`flex-1 bg-red-600 h-10 p-2 hover:bg-red-700 text-white ${report.status === 'REJECTED' ? 'opacity-50' : ''}`}
                                     >

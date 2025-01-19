@@ -15,7 +15,6 @@ export async function POST(
     context: { params: { id: string } }
 ) {
     try {
-        // Await both session and params
         const [session, { id }] = await Promise.all([
             auth(),
             Promise.resolve(context.params)
@@ -61,38 +60,23 @@ export async function POST(
 
         switch (session.user.role) {
             case 'PROGRAM_COORDINATOR':
-                if (report.currentApprovalLevel !== 'PROGRAM_COORDINATOR') {
-                    return NextResponse.json(
-                        { error: 'Not authorized to review at this stage' },
-                        { status: 403 }
-                    );
-                }
                 updateData.approvedByProgramCoordinator = action === 'approve';
                 updateData.currentApprovalLevel = action === 'approve' ? 'HOD' : 'PROGRAM_COORDINATOR';
                 updateData.status = action === 'approve' ? 'PENDING' : 'REJECTED';
                 break;
 
             case 'HOD':
-                if (report.currentApprovalLevel !== 'HOD' || !report.approvedByProgramCoordinator) {
-                    return NextResponse.json(
-                        { error: 'Not authorized to review at this stage' },
-                        { status: 403 }
-                    );
-                }
                 updateData.approvedByHOD = action === 'approve';
                 updateData.currentApprovalLevel = action === 'approve' ? 'DEAN_ACADEMICS' : 'HOD';
-                updateData.status = action === 'approve' ? 'PENDING' : 'REJECTED';
+                updateData.status = 'PENDING';
                 break;
 
             case 'DEAN_ACADEMICS':
-                if (report.currentApprovalLevel !== 'DEAN_ACADEMICS' || !report.approvedByHOD) {
-                    return NextResponse.json(
-                        { error: 'Not authorized to review at this stage' },
-                        { status: 403 }
-                    );
-                }
                 updateData.approvedByDeanAcademics = action === 'approve';
+                updateData.currentApprovalLevel = action === 'approve' ? 'COMPLETED' : 'DEAN_ACADEMICS';
                 updateData.status = action === 'approve' ? 'APPROVED' : 'REJECTED';
+                updateData.reviewedAt = new Date();
+                updateData.reviewerId = session.user.id;
                 break;
 
             default:

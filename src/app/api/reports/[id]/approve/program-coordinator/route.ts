@@ -15,6 +15,7 @@ export async function POST(
     try {
         const session = await auth();
         const { id } = params;
+        const data = await request.json() as { comment: string; approved: boolean };
 
         if (!session?.user || session.user.role !== 'PROGRAM_COORDINATOR') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -24,7 +25,7 @@ export async function POST(
             where: { id },
             data: {
                 approvedByProgramCoordinator: true,
-                status: 'PENDING',
+                status: data.approved ? 'APPROVED' : 'REJECTED',
                 currentApprovalLevel: 'HOD'
             }
         });

@@ -62,7 +62,7 @@ export default function ResetPasswordPage() {
         return (
             <div className="min-h-screen flex flex-col bg-[#004a7c]/10">
                 <div className="flex-1 flex items-center justify-center px-4 py-12">
-                    <Card className="w-full max-w-md bg-white/80 backdrop-blur-sm shadow-xl border-2 border-[#004a7c]/10">
+                    <Card className="w-full max-w-md backdrop-blur-sm shadow-xl border-2 border-[#004a7c]/10">
                         <CardHeader className="space-y-1">
                             <CardTitle className="text-2xl text-center text-[#004a7c]">
                                 Invalid Reset Link
