@@ -74,16 +74,7 @@ export default function ReportsPage() {
         try {
             const response = await fetch('/api/reports');
             const data = await response.json();
-
-            // Filter reports based on program coordinator's view
-            const filteredReports = data.filter((report: Report) => {
-                return (
-                    (!report.approvedByProgramCoordinator && !report.approvedByHOD && !report.approvedByDeanAcademics) ||
-                    (report.approvedByProgramCoordinator && !report.approvedByHOD && !report.approvedByDeanAcademics)
-                );
-            });
-
-            setReports(filteredReports);
+            setReports(data);
         } catch (error) {
             console.error('Failed to fetch reports:', error);
         } finally {

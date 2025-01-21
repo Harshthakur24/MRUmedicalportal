@@ -2,55 +2,38 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
+interface RouteContext {
+    params: {
+        id: string;
+    };
+}
+
 export async function POST(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: RouteContext
 ) {
     try {
-        const [session, { id }] = await Promise.all([
-            auth(),
-            Promise.resolve(params)
-        ]);
+        const session = await auth();
+        const { id } = params;
+        const data = await request.json() as { comment: string; approved: boolean };
 
-        if (!session?.user) {
+        if (!session?.user || session.user.role !== 'DEAN_ACADEMICS') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        if (session.user.role !== 'DEAN_ACADEMICS') {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-        }
-
-        const data = await request.json() as { comment: string; approved: boolean };
-
-        // Verify the report exists and is at the correct approval level
-        const report = await prisma.medicalReport.findUnique({
-            where: { id }
-        });
-
-        if (!report) {
-            return NextResponse.json({ error: 'Report not found' }, { status: 404 });
-        }
-
-        if (report.currentApprovalLevel !== 'DEAN_ACADEMICS') {
-            return NextResponse.json(
-                { error: 'Report is not at Dean Academics approval level' },
-                { status: 403 }
-            );
-        }
-
-        const updatedReport = await prisma.medicalReport.update({
+        const report = await prisma.medicalReport.update({
             where: { id },
             data: {
                 approvedByDeanAcademics: true,
-                status: data.approved ? 'APPROVED' : 'REJECTED',
+                status: data.approved ? 'APPROVED' : 'REJECTED',  // Final status set by Dean
                 currentApprovalLevel: data.approved ? 'COMPLETED' : 'DEAN_ACADEMICS',
                 reviewerId: session.user.id,
                 reviewedAt: new Date(),
                 reviewComment: data.comment
-            },
+            }
         });
 
-        return NextResponse.json(updatedReport);
+        return NextResponse.json(report);
     } catch (error) {
         console.error('Error updating report:', error);
         return NextResponse.json(

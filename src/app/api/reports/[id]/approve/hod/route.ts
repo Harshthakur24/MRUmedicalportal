@@ -15,24 +15,71 @@ export async function POST(
     try {
         const session = await auth();
         const { id } = params;
-        
+        const data = await request.json() as { comment: string; approved: boolean };
+
+        // Debug session info
+        console.log('HOD Approval - Session role:', session?.user?.role);
+        console.log('HOD Approval - Department:', session?.user?.department);
 
         if (!session?.user || session.user.role !== 'HOD') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const report = await prisma.medicalReport.update({
+        // Check if report exists and is approved by PC
+        const report = await prisma.medicalReport.findUnique({
             where: { id },
-            data: {
-                approvedByHOD: true,
-                status: 'PENDING',
-                currentApprovalLevel: 'DEAN_ACADEMICS'
+            include: {
+                student: {
+                    select: {
+                        department: true
+                    }
+                }
             }
         });
 
-        return NextResponse.json(report);
+        if (!report) {
+            return NextResponse.json({ error: 'Report not found' }, { status: 404 });
+        }
+
+        // Debug report info
+        console.log('Report current status:', {
+            id: report.id,
+            status: report.status,
+            approvedByPC: report.approvedByProgramCoordinator,
+            approvedByHOD: report.approvedByHOD,
+            department: report.student?.department
+        });
+
+        if (!report.approvedByProgramCoordinator) {
+            return NextResponse.json(
+                { error: 'Report must be approved by Program Coordinator first' },
+                { status: 403 }
+            );
+        }
+
+        // Update report based on HOD's decision
+        const updatedReport = await prisma.medicalReport.update({
+            where: { id },
+            data: {
+                approvedByHOD: data.approved,
+                status: data.approved ? 'PENDING' : 'REJECTED',
+                currentApprovalLevel: data.approved ? 'DEAN_ACADEMICS' : 'HOD',
+                reviewComment: data.comment,
+                reviewedAt: new Date()
+            }
+        });
+
+        // Debug updated report
+        console.log('Updated report status:', {
+            id: updatedReport.id,
+            status: updatedReport.status,
+            approvedByHOD: updatedReport.approvedByHOD,
+            currentLevel: updatedReport.currentApprovalLevel
+        });
+
+        return NextResponse.json(updatedReport);
     } catch (error) {
-        console.error('Error approving report:', error);
-        return NextResponse.json({ error: 'Failed to approve report' }, { status: 500 });
+        console.error('Error updating report:', error);
+        return NextResponse.json({ error: 'Failed to update report' }, { status: 500 });
     }
 } 

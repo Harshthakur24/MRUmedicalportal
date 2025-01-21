@@ -55,14 +55,22 @@ export async function POST(req: Request) {
                     `data:${data.medicalCertificate.contentType};base64,${base64String}`,
                     {
                         folder: 'medical_certificates',
-                        resource_type: 'auto'
+                        resource_type: 'auto',
+                        timeout: 60000, // 60 seconds timeout
+                        chunk_size: 6000000 // 6MB chunks for better upload handling
                     }
                 );
                 medicalCertificateUrl = uploadResponse.secure_url;
-            } catch (error) {
+            } catch (error: unknown) {
                 console.error('Failed to upload medical certificate:', error);
+                let errorMessage = 'Failed to upload medical certificate.';
+                if (typeof error === 'object' && error !== null && 'name' in error) {
+                    if (error.name === 'TimeoutError') {
+                        errorMessage = 'Upload timed out. Please try again with a smaller file or better connection.';
+                    }
+                }
                 return NextResponse.json(
-                    { error: 'Failed to upload medical certificate. Please try again.' },
+                    { error: errorMessage },
                     { status: 500 }
                 );
             }
@@ -126,6 +134,10 @@ export async function GET() {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        // Debug session info
+        console.log('Session user role:', session.user.role);
+        console.log('Session user department:', session.user.department);
+
         let reports;
         if (session.user.role === 'STUDENT') {
             reports = await prisma.medicalReport.findMany({
@@ -146,25 +158,54 @@ export async function GET() {
                 where: session.user.department ? {
                     department: session.user.department,
                     OR: [
-                        { approvedByProgramCoordinator: false },
+                        // Show new reports submitted by students
                         { 
-                            approvedByProgramCoordinator: true,
+                            approvedByProgramCoordinator: false, 
                             approvedByHOD: false,
-                            approvedByDeanAcademics: false
+                            approvedByDeanAcademics: false,
+                            status: 'PENDING' 
                         },
-                        {
-                            approvedByProgramCoordinator: true,
+                        // Show reports handled by PC themselves
+                        { 
+                            approvedByProgramCoordinator: true, 
                             approvedByHOD: true,
-                            approvedByDeanAcademics: false
+                            approvedByDeanAcademics: false,
                         }
                     ]
                 } : {
                     OR: [
-                        { approvedByProgramCoordinator: false },
                         { 
+                            approvedByProgramCoordinator: true, 
+                            approvedByHOD: false,
+                            approvedByDeanAcademics: false,
+                            status: 'PENDING' 
+                        }
+                    ]
+                },
+                include: {
+                    student: {
+                        select: {
+                            name: true,
+                            email: true,
+                            department: true
+                        }
+                    }
+                },
+                orderBy: { createdAt: 'desc' }
+            });
+        } else if (session.user.role === 'HOD') {
+            reports = await prisma.medicalReport.findMany({
+                where: {
+                    OR: [
+                        // Show reports approved by PC
+                        {
                             approvedByProgramCoordinator: true,
                             approvedByHOD: false,
-                            approvedByDeanAcademics: false
+                            status: 'PENDING'
+                        },
+                        // Show reports handled by HOD themselves
+                        {
+                            approvedByHOD: true
                         }
                     ]
                 },
@@ -173,44 +214,29 @@ export async function GET() {
                         select: {
                             name: true,
                             email: true,
-                            department: true
-                        }
-                    }
-                },
-                orderBy: { createdAt: 'desc' }
-            });
-        } else if (session.user.role === 'HOD' && session.user.department) {
-
-            reports = await prisma.medicalReport.findMany({
-                where: {
-                    department: session.user.department,
-                    approvedByProgramCoordinator: true,
-                    OR: [
-                        { approvedByHOD: false, approvedByDeanAcademics: false }, // Pending HOD approval
-                        { approvedByHOD: true, approvedByDeanAcademics: false }   // Already approved by HOD
-                    ]
-                },
-                include: {
-                    student: {
-                        select: {
-                            name: true,
-                            email: true,
-                            department: true
+                            department: true,
+                            rollNumber: true,
+                            year: true
                         }
                     }
                 },
                 orderBy: { createdAt: 'desc' }
             });
-        } else if (session.user.role === 'DEAN_ACADEMICS' && session.user.department) {
-            // For Dean: Show all reports approved by both PC and HOD, including those approved by Dean
+        } else if (session.user.role === 'DEAN_ACADEMICS') {
             reports = await prisma.medicalReport.findMany({
                 where: {
-                    department: session.user.department,
-                    approvedByProgramCoordinator: true,
-                    approvedByHOD: true,
                     OR: [
-                        { approvedByDeanAcademics: false }, // Pending Dean approval
-                        { approvedByDeanAcademics: true }   // Already approved by Dean
+                        // Show reports approved by HOD
+                        {
+                            approvedByProgramCoordinator: true,
+                            approvedByHOD: true,
+                            approvedByDeanAcademics: false,
+                            status: 'PENDING'
+                        },
+                        // Show reports handled by Dean themselves
+                        {
+                            approvedByDeanAcademics: true
+                        }
                     ]
                 },
                 include: {
@@ -218,14 +244,15 @@ export async function GET() {
                         select: {
                             name: true,
                             email: true,
-                            department: true
+                            department: true,
+                            rollNumber: true,
+                            year: true
                         }
                     }
                 },
                 orderBy: { createdAt: 'desc' }
             });
         } else {
-            // For Admin
             reports = await prisma.medicalReport.findMany({
                 include: {
                     student: {

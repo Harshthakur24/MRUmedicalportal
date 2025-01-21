@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast, Toaster } from 'sonner';
+import { toast, Toaster } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -126,14 +126,23 @@ export default function MedicalReportForm() {
             const responseData = await response.json();
 
             if (!response.ok) {
+                if (responseData.error?.includes('timed out')) {
+                    throw new Error('File upload timed out. Please try with a smaller file or better connection.');
+                }
                 throw new Error(responseData.error || 'Failed to submit report');
             }
 
-            toast.success('Report submitted successfully');
-            router.push('/dashboard');
+            toast.success('Medical report submitted successfully!', {
+                duration: 4000
+            });
+            setTimeout(() => {
+                router.push('/dashboard');
+            }, 4000);
         } catch (error) {
             console.error('Submit error:', error);
-            toast.error(error instanceof Error ? error.message : 'Failed to submit report');
+            toast.error(error instanceof Error ? error.message : 'Failed to submit report', {
+                duration: 4000
+            });
         } finally {
             setLoading(false);
         }

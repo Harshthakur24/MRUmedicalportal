@@ -24,9 +24,10 @@ export async function POST(
         const report = await prisma.medicalReport.update({
             where: { id },
             data: {
-                approvedByProgramCoordinator: true,
-                status: data.approved ? 'APPROVED' : 'REJECTED',
-                currentApprovalLevel: 'HOD'
+                approvedByProgramCoordinator: data.approved,
+                status: data.approved ? 'PENDING' : 'REJECTED',
+                currentApprovalLevel: data.approved ? 'HOD' : 'PROGRAM_COORDINATOR',
+                reviewComment: data.comment
             }
         });
 

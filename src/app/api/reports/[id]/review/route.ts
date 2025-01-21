@@ -66,12 +66,25 @@ export async function POST(
                 break;
 
             case 'HOD':
+                if (!report.approvedByProgramCoordinator) {
+                    return NextResponse.json(
+                        { error: 'Report must be approved by Program Coordinator first' },
+                        { status: 403 }
+                    );
+                }
                 updateData.approvedByHOD = action === 'approve';
                 updateData.currentApprovalLevel = action === 'approve' ? 'DEAN_ACADEMICS' : 'HOD';
-                updateData.status = 'PENDING';
+                updateData.status = action === 'approve' ? 'PENDING' : 'REJECTED';
+                updateData.reviewedAt = new Date();
                 break;
 
             case 'DEAN_ACADEMICS':
+                if (!report.approvedByHOD) {
+                    return NextResponse.json(
+                        { error: 'Report must be approved by HOD first' },
+                        { status: 403 }
+                    );
+                }
                 updateData.approvedByDeanAcademics = action === 'approve';
                 updateData.currentApprovalLevel = action === 'approve' ? 'COMPLETED' : 'DEAN_ACADEMICS';
                 updateData.status = action === 'approve' ? 'APPROVED' : 'REJECTED';
