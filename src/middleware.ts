@@ -6,24 +6,20 @@ export default withAuth(
         const token = req.nextauth.token;
         const path = req.nextUrl.pathname;
 
-        // Allow access to auth-related pages
-        if (path.startsWith('/auth/')) {
+        // Allow access to auth-related pages and API routes
+        if (path.startsWith('/auth/') || path.startsWith('/api/auth/')) {
             return NextResponse.next();
         }
 
-        // Require authentication for dashboard and api routes
+        // Require authentication for protected routes
         if (!token) {
+            if (path.startsWith('/api/')) {
+                return new NextResponse(
+                    JSON.stringify({ error: 'Authentication required' }),
+                    { status: 401, headers: { 'content-type': 'application/json' } }
+                );
+            }
             return NextResponse.redirect(new URL('/auth/login', req.url));
-        }
-
-        // Allow access to dashboard for all authenticated users
-        if (path.startsWith('/dashboard')) {
-            return NextResponse.next();
-        }
-
-        // Allow access to API routes for authenticated users
-        if (path.startsWith('/api/')) {
-            return NextResponse.next();
         }
 
         return NextResponse.next();
@@ -36,5 +32,9 @@ export default withAuth(
 );
 
 export const config = {
-    matcher: ['/dashboard/:path*', '/api/:path*']
+    matcher: [
+        '/dashboard/:path*',
+        '/api/:path*',
+        '/submit-report/:path*'
+    ]
 }; 

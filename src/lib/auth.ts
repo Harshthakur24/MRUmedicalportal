@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth/next";
 import CredentialsProvider from "next-auth/providers/credentials";
 import prisma from "@/lib/prisma";
 import { compare } from "bcryptjs";
-import { User } from "@prisma/client";
+import { Adapter } from "next-auth/adapters";
 
 declare module "next-auth" {
     interface Session {
@@ -17,6 +17,10 @@ declare module "next-auth" {
             rollNumber?: string | null;
             year?: string | null;
         }
+    }
+    interface User {
+        role: string;
+        department?: string | null;
     }
 }
 
@@ -31,14 +35,15 @@ declare module "next-auth/jwt" {
 }
 
 export const authOptions: NextAuthOptions = {
-    adapter: PrismaAdapter(prisma),
+    adapter: PrismaAdapter(prisma) as Adapter,
+    secret: process.env.NEXTAUTH_SECRET,
     session: {
         strategy: "jwt",
         maxAge: 30 * 24 * 60 * 60, // 30 days
     },
     pages: {
-        signIn: "/login",
-        error: "/login",
+        signIn: "/auth/login",
+        error: "/auth/error",
     },
     providers: [
         CredentialsProvider({
@@ -49,39 +54,26 @@ export const authOptions: NextAuthOptions = {
             },
             async authorize(credentials) {
                 if (!credentials?.email || !credentials?.password) {
-                    throw new Error("Please enter your email and password");
+                    throw new Error("Invalid credentials");
                 }
 
                 const user = await prisma.user.findUnique({
                     where: {
-                        email: credentials.email.toLowerCase()
+                        email: credentials.email
                     }
                 });
 
-                if (!user) {
-                    throw new Error("No user found with this email");
-                }
-
-                if (!user.emailVerified) {
-                    throw new Error("Please verify your email before logging in");
-                }
-
-                // Get the password from Account table
-                const account = await prisma.account.findFirst({
-                    where: {
-                        userId: user.id,
-                        provider: 'credentials'
-                    }
-                });
-
-                if (!account?.access_token) {
+                if (!user || !user.password) {
                     throw new Error("Invalid credentials");
                 }
 
-                const isValid = await compare(credentials.password, account.access_token);
+                const isPasswordValid = await compare(
+                    credentials.password,
+                    user.password
+                );
 
-                if (!isValid) {
-                    throw new Error("Invalid password");
+                if (!isPasswordValid) {
+                    throw new Error("Invalid credentials");
                 }
 
                 return {
@@ -89,40 +81,35 @@ export const authOptions: NextAuthOptions = {
                     email: user.email,
                     name: user.name,
                     role: user.role,
-                    department: user.department,
-                    rollNumber: user.rollNumber,
-                    year: user.year
+                    department: user.department
                 };
             }
         })
     ],
     callbacks: {
-        async session({ token, session }) {
-            if (token && session.user) {
-                session.user.id = token.id;
-                session.user.name = token.name;
-                session.user.email = token.email;
-                session.user.role = token.role;
-                session.user.department = token.department;
-                session.user.rollNumber = token.rollNumber;
-                session.user.year = token.year;
-            }
-            return session;
-        },
         async jwt({ token, user }) {
             if (user) {
-                const dbUser = user as User;
-                token.id = dbUser.id;
-                token.role = dbUser.role;
-                token.department = dbUser.department;
-                token.rollNumber = dbUser.rollNumber;
-                token.year = dbUser.year;
+                return {
+                    ...token,
+                    id: user.id,
+                    role: user.role,
+                    department: user.department
+                };
             }
             return token;
+        },
+        async session({ session, token }) {
+            return {
+                ...session,
+                user: {
+                    ...session.user,
+                    id: token.id,
+                    role: token.role,
+                    department: token.department
+                }
+            };
         }
-    },
-    secret: process.env.NEXTAUTH_SECRET,
-    debug: process.env.NODE_ENV === 'development'
+    }
 };
 
 export const auth = () => getServerSession(authOptions); 
