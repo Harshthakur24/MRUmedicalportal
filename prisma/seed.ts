@@ -34,59 +34,24 @@ async function main() {
     const hashedPassword = await hash(defaultPassword, 12);
 
     for (const admin of defaultAdmins) {
-        const existingUser = await prisma.user.findUnique({
-            where: { email: admin.email }
-        });
-
-        if (!existingUser) {
-            // Create user first
-            const user = await prisma.user.create({
-                data: {
-                    name: admin.name,
-                    email: admin.email,
-                    role: admin.role,
-                    department: admin.department,
-                    emailVerified: admin.emailVerified,
-                }
-            });
-
-            // Then create the account with credentials
-            await prisma.account.create({
-                data: {
-                    userId: user.id,
-                    type: 'credentials',
-                    provider: 'credentials',
-                    providerAccountId: admin.email,
-                    access_token: hashedPassword
-                }
-            });
-
-            console.log(`Created admin user: ${admin.email}`);
-        } else {
-            // Update existing account's password if needed
-            const existingAccount = await prisma.account.findFirst({
-                where: {
-                    userId: existingUser.id,
-                    provider: 'credentials'
-                }
-            });
-
-            if (!existingAccount) {
-                await prisma.account.create({
-                    data: {
-                        userId: existingUser.id,
-                        type: 'credentials',
-                        provider: 'credentials',
-                        providerAccountId: admin.email,
-                        access_token: hashedPassword
-                    }
-                });
-                console.log(`Added credentials for existing admin: ${admin.email}`);
+        await prisma.user.upsert({
+            where: { email: admin.email },
+            update: {
+                password: hashedPassword
+            },
+            create: {
+                name: admin.name,
+                email: admin.email,
+                role: admin.role,
+                department: admin.department,
+                emailVerified: admin.emailVerified,
+                password: hashedPassword
             }
-
-            console.log(`Admin user already exists: ${admin.email}`);
-        }
+        });
+        console.log(`Upserted admin user: ${admin.email}`);
     }
+    
+    console.log('Database has been seeded');
 }
 
 main()

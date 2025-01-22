@@ -21,6 +21,8 @@ declare module "next-auth" {
     interface User {
         role: string;
         department?: string | null;
+        rollNumber?: string | null;
+        year?: string | null;
     }
 }
 
@@ -54,7 +56,7 @@ export const authOptions: NextAuthOptions = {
             },
             async authorize(credentials) {
                 if (!credentials?.email || !credentials?.password) {
-                    throw new Error("Invalid credentials");
+                    return null;
                 }
 
                 const user = await prisma.user.findUnique({
@@ -64,16 +66,13 @@ export const authOptions: NextAuthOptions = {
                 });
 
                 if (!user || !user.password) {
-                    throw new Error("Invalid credentials");
+                    return null;
                 }
 
-                const isPasswordValid = await compare(
-                    credentials.password,
-                    user.password
-                );
+                const isPasswordValid = await compare(credentials.password, user.password);
 
                 if (!isPasswordValid) {
-                    throw new Error("Invalid credentials");
+                    return null;
                 }
 
                 return {
@@ -81,7 +80,9 @@ export const authOptions: NextAuthOptions = {
                     email: user.email,
                     name: user.name,
                     role: user.role,
-                    department: user.department
+                    department: user.department,
+                    year: user.year,
+                    rollNumber: user.rollNumber
                 };
             }
         })
@@ -89,25 +90,23 @@ export const authOptions: NextAuthOptions = {
     callbacks: {
         async jwt({ token, user }) {
             if (user) {
-                return {
-                    ...token,
-                    id: user.id,
-                    role: user.role,
-                    department: user.department
-                };
+                token.id = user.id;
+                token.role = user.role;
+                token.department = user.department;
+                token.year = user.year;
+                token.rollNumber = user.rollNumber;
             }
             return token;
         },
         async session({ session, token }) {
-            return {
-                ...session,
-                user: {
-                    ...session.user,
-                    id: token.id,
-                    role: token.role,
-                    department: token.department
-                }
-            };
+            if (session.user) {
+                session.user.id = token.id;
+                session.user.role = token.role;
+                session.user.department = token.department;
+                session.user.year = token.year;
+                session.user.rollNumber = token.rollNumber;
+            }
+            return session;
         }
     }
 };
