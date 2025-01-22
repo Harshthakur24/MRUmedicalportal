@@ -32,6 +32,7 @@ export default function Home() {
           <nav className="space-x-6 flex items-center">
             <Link href="/auth/login" className="hover:text-blue-200 transition">Login</Link>
             {session?.user?.role === 'STUDENT' && <Link href="/auth/register" className="hover:text-blue-200 transition">Register</Link>}
+            {session?.user?.role != 'STUDENT' && !isAdmin && <Link href="/auth/register" className="hover:text-blue-200 transition">Register</Link>}
             {session?.user?.role === 'STUDENT' && (
               <>
                 <Link href="/dashboard" className="hover:text-blue-200 transition">Dashboard</Link>

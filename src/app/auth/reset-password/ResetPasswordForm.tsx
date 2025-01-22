@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast, Toaster } from 'sonner';
 
-export default function ResetPasswordPage() {
+export default function ResetPasswordForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const token = searchParams.get('token');
@@ -40,9 +40,10 @@ export default function ResetPasswordPage() {
                 body: JSON.stringify({ token, password }),
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Failed to reset password');
+                throw new Error(data.error || 'Failed to reset password');
             }
 
             toast.success('Password reset successfully!', {
@@ -50,7 +51,7 @@ export default function ResetPasswordPage() {
             });
             router.push('/auth/login');
         } catch (error) {
-            toast.error('Failed to reset password', {
+            toast.error(error instanceof Error ? error.message : 'Failed to reset password', {
                 position: 'top-center',
             });
         } finally {

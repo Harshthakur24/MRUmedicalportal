@@ -1,84 +1,64 @@
 import { NextResponse } from 'next/server';
-import { hash } from 'bcryptjs';
 import prisma from '@/lib/prisma';
+import { hash } from 'bcryptjs';
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
     try {
-        const { token, password } = await req.json();
+        const body = await request.json();
+        console.log("Received reset request:", body); // Debug log
+
+        const { token, password } = body;
 
         if (!token || !password) {
+            console.log("Missing token or password"); // Debug log
             return NextResponse.json(
-                { message: 'Token and password are required' },
+                { error: "Token and password are required" },
                 { status: 400 }
             );
         }
 
-        // Find user with valid reset token
+        // Find the user by reset token and ensure it hasn't expired
         const user = await prisma.user.findFirst({
-            where: {
-                verificationToken: token
+            where: { 
+                resetToken: token,
+                resetTokenExpiry: {
+                    gt: new Date()
+                }
             }
         });
 
         if (!user) {
+            console.log("Invalid or expired token:", token); // Debug log
             return NextResponse.json(
-                { message: 'Invalid reset token' },
+                { error: "Invalid or expired reset token" },
                 { status: 400 }
             );
         }
 
-        // Hash new password
-        const hashedPassword = await hash(password, 10);
+        // Hash the new password
+        const hashedPassword = await hash(password, 12);
 
-        // Update or create user's credentials in the Account model
-        const existingAccount = await prisma.account.findFirst({
-            where: {
-                provider: 'credentials',
-                providerAccountId: user.email!,
-                userId: user.id
-            }
-        });
-
-        if (existingAccount) {
-            await prisma.account.update({
-                where: {
-                    provider_providerAccountId: {
-                        provider: 'credentials',
-                        providerAccountId: user.email!
-                    }
-                },
-                data: {
-                    access_token: hashedPassword
-                }
-            });
-        } else {
-            await prisma.account.create({
-                data: {
-                    type: 'credentials',
-                    provider: 'credentials',
-                    providerAccountId: user.email!,
-                    userId: user.id,
-                    access_token: hashedPassword
-                }
-            });
-        }
-
-        // Clear verification token
-        await prisma.user.update({
+        // Update the user's password and clear the reset token
+        const updatedUser = await prisma.user.update({
             where: { id: user.id },
-            data: {
-                verificationToken: null
+            data: { 
+                password: hashedPassword,
+                resetToken: null,
+                resetTokenExpiry: null
             }
         });
+
+        console.log("Password updated for user:", updatedUser.email); // Debug log
 
         return NextResponse.json(
-            { message: 'Password reset successful' },
+            { message: "Password updated successfully" },
             { status: 200 }
         );
+
     } catch (error) {
-        console.error('Password reset error:', error);
+        console.error("Password reset error:", error);
         return NextResponse.json(
-            { message: 'Failed to reset password' },
+            { error: "Failed to reset password" },
             { status: 500 }
         );
     }
