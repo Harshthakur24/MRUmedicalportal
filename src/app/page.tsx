@@ -1,16 +1,18 @@
-"use client"
+"use client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GraduationCap, FileText, Shield } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
+import { LogoutButton } from "@/components/logout-button";
 
 export default function Home() {
   const { data: session } = useSession();
-  const isAdmin = session?.user?.role === 'PROGRAM_COORDINATOR' ||
-    session?.user?.role === 'HOD' ||
-    session?.user?.role === 'DEAN_ACADEMICS';
+  const isAdmin =
+    session?.user?.role === "PROGRAM_COORDINATOR" ||
+    session?.user?.role === "HOD" ||
+    session?.user?.role === "DEAN_ACADEMICS";
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -30,19 +32,52 @@ export default function Home() {
             </h2>
           </div>
           <nav className="space-x-6 flex items-center">
-            <Link href="/auth/login" className="hover:text-blue-200 transition">Login</Link>
-            {session?.user?.role === 'STUDENT' && <Link href="/auth/register" className="hover:text-blue-200 transition">Register</Link>}
-            {session?.user?.role != 'STUDENT' && !isAdmin && <Link href="/auth/register" className="hover:text-blue-200 transition">Register</Link>}
-            {session?.user?.role === 'STUDENT' && (
+            <Link href="/auth/login" className="hover:text-blue-200 transition">
+              Login
+            </Link>
+            {session?.user?.role === "STUDENT" && (
+              <Link
+                href="/auth/register"
+                className="hover:text-blue-200 transition"
+              >
+                Register
+              </Link>
+            )}
+            {session?.user?.role != "STUDENT" && !isAdmin && (
+              <Link
+                href="/auth/register"
+                className="hover:text-blue-200 transition"
+              >
+                Register
+              </Link>
+            )}
+            {session?.user?.role === "STUDENT" && (
               <>
-                <Link href="/dashboard" className="hover:text-blue-200 transition">Dashboard</Link>
-                <Link href="/submit-report" className="hover:text-blue-200 transition">Submit Report</Link>
+                <Link
+                  href="/dashboard"
+                  className="hover:text-blue-200 transition"
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  href="/submit-report"
+                  className="hover:text-blue-200 transition"
+                >
+                  Submit Report
+                </Link>
               </>
             )}
             {isAdmin && (
-              <Link href="/dashboard/reports" className="hover:text-blue-200 transition">Dashboard</Link>
+              <Link
+                href="/dashboard/reports"
+                className="hover:text-blue-200 transition"
+              >
+                Dashboard
+              </Link>
             )}
-            <Link href="/help" className="hover:text-blue-200 transition">Help</Link>
+            <Link href="/help" className="hover:text-blue-200 transition">
+              Help
+            </Link>
             <Link
               href="/profile"
               className="ml-4 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 transition flex items-center justify-center"
@@ -55,6 +90,10 @@ export default function Home() {
                 className="rounded-full"
               />
             </Link>
+            <LogoutButton
+              variant="outline"
+              className="text-red-500 hover:text-red-600"
+            />
           </nav>
         </div>
       </header>
@@ -65,13 +104,16 @@ export default function Home() {
           <div className="text-center">
             <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl md:text-6xl">
               Medical Compliance
-              <span className="block text-[#004a7c] mt-2">Student Health Portal</span>
+              <span className="block text-[#004a7c] mt-2">
+                Student Health Portal
+              </span>
             </h1>
             <p className="mt-3 max-w-md mx-auto text-base text-gray-600 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
-              Streamlined medical report submission and tracking for university students and health administrators.
+              Streamlined medical report submission and tracking for university
+              students and health administrators.
             </p>
             <div className="mt-8 flex justify-center space-x-4">
-              {session?.user?.role === 'STUDENT' && (
+              {session?.user?.role === "STUDENT" && (
                 <Link href="/submit-report">
                   <Button className="bg-[#007bff] hover:bg-[#0056b3] px-10 py-5 text-lg font-semibold rounded-3xl text-white hover:scale-105 transition duration-50">
                     Submit Medical Report
@@ -80,7 +122,10 @@ export default function Home() {
               )}
               {session?.user && (
                 <Link href={isAdmin ? "/dashboard/reports" : "/dashboard"}>
-                  <Button variant="outline" className="border-[#004a7c] text-[#004a7c] hover:bg-gray-100 px-10 py-5 text-lg font-semibold rounded-3xl hover:scale-105 transition duration-50">
+                  <Button
+                    variant="outline"
+                    className="border-[#004a7c] text-[#004a7c] hover:bg-gray-100 px-10 py-5 text-lg font-semibold rounded-3xl hover:scale-105 transition duration-50"
+                  >
                     View Dashboard
                   </Button>
                 </Link>
@@ -94,9 +139,12 @@ export default function Home() {
       <div className="py-20 bg-gradient-to-b from-gray-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Use Our Portal?</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Why Use Our Portal?
+            </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Our secure platform ensures easy, compliant, and confidential medical report management for students.
+              Our secure platform ensures easy, compliant, and confidential
+              medical report management for students.
             </p>
           </div>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
@@ -111,7 +159,8 @@ export default function Home() {
               </CardHeader>
               <CardContent className="text-center">
                 <p className="text-gray-600">
-                  Intuitive interface allows quick and secure medical report uploads with minimal effort.
+                  Intuitive interface allows quick and secure medical report
+                  uploads with minimal effort.
                 </p>
               </CardContent>
             </Card>
@@ -127,7 +176,8 @@ export default function Home() {
               </CardHeader>
               <CardContent className="text-center">
                 <p className="text-gray-600">
-                  Advanced security protocols ensure your sensitive medical information remains confidential.
+                  Advanced security protocols ensure your sensitive medical
+                  information remains confidential.
                 </p>
               </CardContent>
             </Card>
@@ -143,7 +193,8 @@ export default function Home() {
               </CardHeader>
               <CardContent className="text-center">
                 <p className="text-gray-600">
-                  Seamless connection with university systems for efficient record management.
+                  Seamless connection with university systems for efficient
+                  record management.
                 </p>
               </CardContent>
             </Card>
@@ -158,9 +209,24 @@ export default function Home() {
             © 2024 University Medical Compliance Portal. All Rights Reserved.
           </p>
           <div className="mt-4 space-x-4">
-            <Link href="/privacy" className="hover:text-blue-200 transition-colors duration-200">Privacy Policy</Link>
-            <Link href="/terms" className="hover:text-blue-200 transition-colors duration-200">Terms of Service</Link>
-            <Link href="/contact" className="hover:text-blue-200 transition-colors duration-200">Contact Support</Link>
+            <Link
+              href="/privacy"
+              className="hover:text-blue-200 transition-colors duration-200"
+            >
+              Privacy Policy
+            </Link>
+            <Link
+              href="/terms"
+              className="hover:text-blue-200 transition-colors duration-200"
+            >
+              Terms of Service
+            </Link>
+            <Link
+              href="/contact"
+              className="hover:text-blue-200 transition-colors duration-200"
+            >
+              Contact Support
+            </Link>
           </div>
         </div>
       </footer>
