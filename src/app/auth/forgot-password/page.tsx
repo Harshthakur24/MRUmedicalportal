@@ -56,7 +56,7 @@ export default function ForgotPasswordPage() {
                         <CardContent className="space-y-4">
                             <Button
                                 onClick={() => router.push('/auth/login')}
-                                className="w-full bg-[#004a7c] hover:bg-[#004a7c]/90"
+                                className="w-full bg-[#004a7c] hover:bg-[#004a7c]/90 h-10 text-white"
                             >
                                 Return to Login
                             </Button>
@@ -109,7 +109,7 @@ export default function ForgotPasswordPage() {
                                 type="button"
                                 variant="outline"
                                 onClick={() => router.push('/auth/login')}
-                                className="w-full"
+                                className="w-full h-10"
                             >
                                 Back to Login
                             </Button>

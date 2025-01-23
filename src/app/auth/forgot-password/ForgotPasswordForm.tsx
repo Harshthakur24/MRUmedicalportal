@@ -130,7 +130,7 @@ export default function ForgotPasswordForm() {
                                         onClick={() => router.push('/auth/login')}
                                         className="w-full hover:bg-gray-50 transition-colors duration-200"
                                     >
-                                        <ArrowLeft className="w-4 h-10 mr-2" />
+                                        <ArrowLeft className="w-4 h-4 mr-2" />
                                         Back to Login
                                     </Button>
                                 </div>

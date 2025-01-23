@@ -102,7 +102,7 @@ export default function ResetPasswordForm() {
     }
 
     return (
-        <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#004a7c]/10 to-white">
+        <div className="min-h-screen flex flex-col">
             <div className="flex-1 flex items-center justify-center px-4 py-12">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -158,7 +158,7 @@ export default function ResetPasswordForm() {
                                 <div className="space-y-4">
                                     <Button
                                         type="submit"
-                                        className="w-full bg-gradient-to-r from-[#004a7c] to-[#0056b3] hover:from-[#0056b3] hover:to-[#004a7c] text-white shadow-lg transition-all duration-300"
+                                        className="w-full bg-gradient-to-r from-[#004a7c] to-[#0056b3] hover:from-[#0056b3] hover:to-[#004a7c] text-white shadow-lg transition-all duration-300 h-10"
                                         disabled={isLoading}
                                     >
                                         {isLoading ? (
@@ -174,7 +174,7 @@ export default function ResetPasswordForm() {
                                         type="button"
                                         variant="outline"
                                         onClick={() => router.push('/auth/login')}
-                                        className="w-full hover:bg-gray-50 transition-colors duration-200"
+                                        className="w-full h-10 hover:bg-gray-50 transition-colors duration-200"
                                     >
                                         <ArrowLeft className="w-4 h-4 mr-2" />
                                         Back to Login
