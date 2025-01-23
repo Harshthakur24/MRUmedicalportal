@@ -115,6 +115,9 @@ export default function ReportReviewPage() {
                     : 'Medical report has been rejected ❌'
             );
 
+            // Update the status of the report
+            setReport((prevReport) => prevReport ? { ...prevReport, status: action === 'approve' ? 'APPROVED' : 'REJECTED' } : null);
+
             router.refresh();
         } catch (error) {
             toast.error('Failed to submit review');
@@ -460,4 +463,4 @@ export default function ReportReviewPage() {
             <Toaster position="bottom-right" />
         </div>
     );
-} 
+}

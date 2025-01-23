@@ -91,7 +91,6 @@ export default function Home() {
               />
             </Link>
             <LogoutButton
-              variant="outline"
               className="text-red-500 hover:text-red-600"
             />
           </nav>

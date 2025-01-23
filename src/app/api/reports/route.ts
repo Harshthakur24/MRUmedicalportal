@@ -168,7 +168,7 @@ export async function GET() {
                         // Show reports handled by PC themselves
                         { 
                             approvedByProgramCoordinator: true, 
-                            approvedByHOD: true,
+                            approvedByHOD: false,
                             approvedByDeanAcademics: false,
                         }
                     ]
@@ -201,11 +201,13 @@ export async function GET() {
                         {
                             approvedByProgramCoordinator: true,
                             approvedByHOD: false,
+                            approvedByDeanAcademics: false,
                             status: 'PENDING'
                         },
                         // Show reports handled by HOD themselves
                         {
-                            approvedByHOD: true
+                            approvedByHOD: true,
+                            approvedByDeanAcademics: false
                         }
                     ]
                 },
