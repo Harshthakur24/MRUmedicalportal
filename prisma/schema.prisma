@@ -45,7 +45,8 @@ model User {
     emailVerified     DateTime?
     image             String?
     role              Role            @default(STUDENT)
-    department        Department?
+    school            String?
+    department        String?
     year              String?
     rollNumber        String?
     studentContact    String?

@@ -16,6 +16,7 @@ interface FormData {
     email: string;
     password: string;
     confirmPassword: string;
+    school: string;
     department: string;
     year: string;
     rollNumber: string;
@@ -25,6 +26,12 @@ interface FormData {
     parentContact?: string;
 }
 
+const classOptions: { [key: string]: string[] } = {
+    'Engineering': ['CSE-A', 'CSE-B', 'CSE-C', 'CSE-AI/ML', 'CSE-CSTI'],
+    'default': ['A', 'B', 'C'],
+    // Add other departments and their class options as needed
+};
+
 export default function RegisterPage() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
@@ -33,6 +40,7 @@ export default function RegisterPage() {
         email: '',
         password: '',
         confirmPassword: '',
+        school: '',
         department: '',
         year: '',
         rollNumber: '',
@@ -52,7 +60,7 @@ export default function RegisterPage() {
     };
 
     const validateForm = () => {
-        if (!formData.name || !formData.email || !formData.password || !formData.department ||
+        if (!formData.name || !formData.email || !formData.password || !formData.school ||
             !formData.year || !formData.rollNumber || !formData.className) {
             toast.error('Please fill in all required fields');
             return false;
@@ -169,22 +177,60 @@ export default function RegisterPage() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="department">Department *</Label>
+                                    <Label htmlFor="school">School *</Label>
                                     <Select
-                                        value={formData.department}
-                                        onValueChange={(value) => handleSelectChange('department', value)}
+                                        value={formData.school}
+                                        onValueChange={(value) => handleSelectChange('school', value)}
                                     >
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Select Department" />
+                                            <SelectValue placeholder="Select School" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="CSE">Computer Science</SelectItem>
-                                            <SelectItem value="ECE">Electronics</SelectItem>
-                                            <SelectItem value="MECH">Mechanical</SelectItem>
-                                            <SelectItem value="CIVIL">Civil</SelectItem>
+                                            <SelectItem value="Engineering">School of Engineering</SelectItem>
+                                            <SelectItem value="Law">School of Law</SelectItem>
+                                            <SelectItem value="Science">School of Science</SelectItem>
+                                            <SelectItem value="Education">School of Education & Humanities</SelectItem>
+                                            <SelectItem value="Management">School of Management & Commerce</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
+                                {formData.school === 'Engineering' && (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="department">Department *</Label>
+                                        <Select
+                                            value={formData.department}
+                                            onValueChange={(value) => handleSelectChange('department', value)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select Department" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="CSE">Computer Science</SelectItem>
+                                                <SelectItem value="ECE">Electronics</SelectItem>
+                                                <SelectItem value="MECH">Mechanical</SelectItem>
+                                                <SelectItem value="CIVIL">Civil</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+                                {formData.school === 'Science' && (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="department">Department *</Label>
+                                        <Select
+                                            value={formData.department}
+                                            onValueChange={(value) => handleSelectChange('department', value)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select Department" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Maths">Maths</SelectItem>
+                                                <SelectItem value="Chemistry">Chemistry</SelectItem>
+                                                <SelectItem value="Physics">Physics</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
                                 <div className="space-y-2">
                                     <Label htmlFor="year">Year *</Label>
                                     <Select
@@ -215,14 +261,21 @@ export default function RegisterPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="className">Class/Section *</Label>
-                                    <Input
-                                        id="className"
-                                        name="className"
+                                    <Select
                                         value={formData.className}
-                                        onChange={handleInputChange}
-                                        disabled={isLoading}
-                                        required
-                                    />
+                                        onValueChange={(value) => handleSelectChange('className', value)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select Class/Section" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {classOptions[formData.school === 'Engineering' ? 'Engineering' : 'default']?.map((className) => (
+                                                <SelectItem key={className} value={className}>
+                                                    {className}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="studentContact">Student Contact</Label>
@@ -283,4 +336,4 @@ export default function RegisterPage() {
             </div>
         </div>
     );
-} 
+}
