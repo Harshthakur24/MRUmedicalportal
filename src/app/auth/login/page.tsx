@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -44,10 +44,11 @@ export default function LoginPage() {
             const userResponse = await fetch('/api/auth/session');
             const session = await userResponse.json();
 
-            toast.success('Login successful!', {
-                position: 'top-center',
-                duration: 2000,
-            });
+            toast.success('Login successful!',
+                {
+                    duration: 2000,
+                }
+            );
 
             // Redirect based on user role
             setTimeout(() => {
@@ -153,18 +154,7 @@ export default function LoginPage() {
                     </CardContent>
                 </Card>
             </div>
-            <Toaster
-                position="top-center"
-                toastOptions={{
-                    style: {
-                        position: 'fixed',
-                        top: '10px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        zIndex: 9999,
-                    },
-                }}
-            />
+
         </div>
     );
 }

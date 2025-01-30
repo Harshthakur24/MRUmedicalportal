@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast, Toaster } from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -134,20 +134,12 @@ export default function MedicalReportForm() {
             }
 
             toast.success('Medical report submitted successfully!', {
-                style: {
-                    background: '#fff',
-                    color: '#333',
-                    border: '1px solid #e2e8f0',
-                    padding: '16px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                },
-                position: 'top-center',
-                duration: 3000,
+                duration: 2500,
             });
 
             setTimeout(() => {
                 router.push('/dashboard');
-            }, 2000);
+            }, 2500);
         } catch (error) {
             console.error('Submit error:', error);
             toast.error(error instanceof Error ? error.message : 'Failed to submit report', {
@@ -452,21 +444,6 @@ export default function MedicalReportForm() {
                 </Button>
             </form>
 
-            <div id="toast-container" className="fixed top-4 right-4 z-[9999]">
-                <Toaster
-                    position="top-center"
-                    toastOptions={{
-                        className: '',
-                        style: {
-                            background: '#fff',
-                            color: '#333',
-                            border: '1px solid #e2e8f0',
-                            padding: '16px',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                        },
-                    }}
-                />
-            </div>
         </>
     );
 } 
