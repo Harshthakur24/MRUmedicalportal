@@ -316,7 +316,7 @@ export default function MedicalReportForm() {
                                         {...register('t1Reexam')}
                                         className="h-4 w-4 rounded border-gray-300"
                                     />
-                                    <Label>Request T1 Re-examination</Label>
+                                    <Label>Request Semester 1 Re-examination</Label>
                                 </div>
                                 <Input
                                     {...register('t1Subjects')}
@@ -331,7 +331,7 @@ export default function MedicalReportForm() {
                                         {...register('t2Reexam')}
                                         className="h-4 w-4 rounded border-gray-300"
                                     />
-                                    <Label>Request T2 Re-examination</Label>
+                                    <Label>Request Semester 2 Re-examination</Label>
                                 </div>
                                 <Input
                                     {...register('t2Subjects')}
