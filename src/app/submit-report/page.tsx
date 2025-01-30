@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import MedicalReportForm from "@/components/MedicalReportForm";
+import { Loader2 } from "lucide-react";
 
 export default function SubmitReportPage() {
     const { data: session, status } = useSession();
@@ -17,7 +18,13 @@ export default function SubmitReportPage() {
     }, [status, router]);
 
     if (status === "loading") {
-        return <div>Loading...</div>;
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#004a7c]/10">
+                <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-[#004a7c] mx-auto" />
+                </div>
+            </div>
+        );
     }
 
     if (!session) {

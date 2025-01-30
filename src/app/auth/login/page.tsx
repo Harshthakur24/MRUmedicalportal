@@ -153,7 +153,18 @@ export default function LoginPage() {
                     </CardContent>
                 </Card>
             </div>
-            <Toaster position="top-center" />
+            <Toaster
+                position="top-center"
+                toastOptions={{
+                    style: {
+                        position: 'fixed',
+                        top: '10px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        zIndex: 9999,
+                    },
+                }}
+            />
         </div>
     );
-} 
+}
