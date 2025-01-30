@@ -40,14 +40,27 @@ export default function LoginPage() {
                 return;
             }
 
+            // Get user session to check role
+            const userResponse = await fetch('/api/auth/session');
+            const session = await userResponse.json();
+
             toast.success('Login successful!', {
                 position: 'top-center',
+                duration: 2000,
             });
 
+            // Redirect based on user role
             setTimeout(() => {
-                router.push('/dashboard');
+                const isAdmin = ['PROGRAM_COORDINATOR', 'HOD', 'DEAN_ACADEMICS'].includes(session?.user?.role);
+                if (isAdmin) {
+                    router.push('/dashboard/reports');
+                } else if (session?.user?.role === 'ADMIN') {
+                    router.push('/admin/dashboard');
+                } else {
+                    router.push('/');
+                }
                 router.refresh();
-            }, 1000);
+            }, 2000);
 
         } catch (error) {
             toast.error('An error occurred during login', {
