@@ -216,7 +216,9 @@ export default function ReportsPage() {
                                 {filteredReports.map((report) => (
                                     <tr key={report.id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="font-medium text-gray-900">{report.student?.name || 'N/A'}</div>
+                                            <div className="font-medium text-gray-900">
+                                                {report.student?.name || 'N/A'}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-gray-500">
                                             {new Date(report.submissionDate).toLocaleDateString()}

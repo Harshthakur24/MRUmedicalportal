@@ -134,11 +134,8 @@ export async function GET() {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Debug session info
-        console.log('Session user role:', session.user.role);
-        console.log('Session user department:', session.user.department);
-
         let reports;
+        
         if (session.user.role === 'STUDENT') {
             reports = await prisma.medicalReport.findMany({
                 where: { studentId: session.user.id },
@@ -147,7 +144,9 @@ export async function GET() {
                         select: {
                             name: true,
                             email: true,
-                            department: true
+                            department: true,
+                            rollNumber: true,
+                            year: true
                         }
                     }
                 },
@@ -155,30 +154,14 @@ export async function GET() {
             });
         } else if (session.user.role === 'PROGRAM_COORDINATOR') {
             reports = await prisma.medicalReport.findMany({
-                where: session.user.department ? {
-                    department: session.user.department,
+                where: {
                     OR: [
-                        // Show new reports submitted by students
-                        { 
-                            approvedByProgramCoordinator: false, 
-                            approvedByHOD: false,
-                            approvedByDeanAcademics: false,
-                            status: 'PENDING' 
+                        {
+                            approvedByProgramCoordinator: false,
+                            status: 'PENDING'
                         },
-                        // Show reports handled by PC themselves
-                        { 
-                            approvedByProgramCoordinator: true, 
-                            approvedByHOD: false,
-                            approvedByDeanAcademics: false,
-                        }
-                    ]
-                } : {
-                    OR: [
-                        { 
-                            approvedByProgramCoordinator: true, 
-                            approvedByHOD: false,
-                            approvedByDeanAcademics: false,
-                            status: 'PENDING' 
+                        {
+                            approvedByProgramCoordinator: true
                         }
                     ]
                 },
@@ -187,7 +170,9 @@ export async function GET() {
                         select: {
                             name: true,
                             email: true,
-                            department: true
+                            department: true,
+                            rollNumber: true,
+                            year: true
                         }
                     }
                 },
@@ -256,6 +241,7 @@ export async function GET() {
             });
         } else {
             reports = await prisma.medicalReport.findMany({
+                where: { studentId: session.user.id },
                 include: {
                     student: {
                         select: {
@@ -268,6 +254,9 @@ export async function GET() {
                 orderBy: { createdAt: 'desc' }
             });
         }
+
+        // Add debug logging
+        console.log('API Response Reports:', JSON.stringify(reports, null, 2));
 
         return NextResponse.json(reports);
     } catch (error) {

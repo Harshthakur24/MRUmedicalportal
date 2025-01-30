@@ -1,4 +1,4 @@
-export type ReportStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+import { ReportStatus } from './index';
 
 export interface MedicalReport {
     id: string;

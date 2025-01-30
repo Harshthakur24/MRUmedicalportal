@@ -22,7 +22,7 @@ export default function LoginPage() {
 
         try {
             const result = await signIn('credentials', {
-                email,
+                email: email.toLowerCase(),
                 password,
                 redirect: false,
             });
@@ -45,7 +45,7 @@ export default function LoginPage() {
             });
 
             setTimeout(() => {
-                router.push('/');
+                router.push('/dashboard');
                 router.refresh();
             }, 1000);
 

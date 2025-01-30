@@ -24,7 +24,6 @@ model Account {
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     @@unique([provider, providerAccountId])
-    @@index([userId])
 }
 
 model Session {
@@ -33,17 +32,15 @@ model Session {
     userId       String
     expires      DateTime
     user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-    @@index([userId])
 }
 
 model User {
     id                String          @id @default(cuid())
     name              String?
     email             String?         @unique
-    password          String?         @db.Text
     emailVerified     DateTime?
     image             String?
+    password          String?         @db.Text
     role              Role            @default(STUDENT)
     school            String?
     department        String?
@@ -62,6 +59,14 @@ model User {
     comments          Comment[]
 
     @@index([email])
+}
+
+model VerificationToken {
+    identifier String
+    token      String   @unique
+    expires    DateTime
+
+    @@unique([identifier, token])
 }
 
 model MedicalReport {
@@ -125,14 +130,6 @@ enum Role {
     HOD
     DEAN_ACADEMICS
     ADMIN
-}
-
-enum Department {
-    CSE
-    ECE
-    EEE
-    MECH
-    CIVIL
 }
 
 enum Status {
