@@ -27,8 +27,11 @@ interface FormData {
 }
 
 const classOptions: { [key: string]: string[] } = {
-    'Engineering': ['CSE-A', 'CSE-B', 'CSE-C', 'CSE-AI/ML', 'CSE-CSTI'],
-    'default': ['A', 'B', 'C'],
+    'CSE': ['CSE-A', 'CSE-B', 'CSE-C', 'CSE-D', 'CSE-AIML-A', 'CSE-AIML-B', 'CSE-CSTI', 'CSE-CDFD', 'CSE-FSD '],
+    'ECE': ['ECE-A', 'ECE-B', 'ECE-C'],
+    'MECH': ['MECH-A', 'MECH-B', 'MECH-C'],
+    'CIVIL': ['CIVIL-A', 'CIVIL-B', 'CIVIL-C'],
+    'default': ['A', 'B', 'C', 'D'],
     // Add other departments and their class options as needed
 };
 
@@ -269,7 +272,7 @@ export default function RegisterPage() {
                                             <SelectValue placeholder="Select Class/Section" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {classOptions[formData.school === 'Engineering' ? 'Engineering' : 'default']?.map((className) => (
+                                            {classOptions[formData.department || 'default']?.map((className) => (
                                                 <SelectItem key={className} value={className}>
                                                     {className}
                                                 </SelectItem>
