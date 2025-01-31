@@ -27,7 +27,16 @@ interface FormData {
 }
 
 const classOptions: { [key: string]: string[] } = {
-    'CSE': ['CSE-A', 'CSE-B', 'CSE-C', 'CSE-D', 'CSE-AIML-A', 'CSE-AIML-B', 'CSE-CSTI', 'CSE-CDFD', 'CSE-FSD '],
+    'CSE': [
+        'CSE-A',
+        'CSE-B',
+        'CSE-C',
+        'CSE-D',
+        'CSE-CDFD',
+        'CSE-AIML-A',
+        'CSE-AIML-B',
+        'CSE-FSD'
+    ],
     'ECE': ['ECE-A', 'ECE-B', 'ECE-C'],
     'MECH': ['MECH-A', 'MECH-B', 'MECH-C'],
     'CIVIL': ['CIVIL-A', 'CIVIL-B', 'CIVIL-C'],
@@ -60,11 +69,67 @@ export default function RegisterPage() {
 
     const handleSelectChange = (name: string, value: string) => {
         setFormData(prev => ({ ...prev, [name]: value }));
+
+        if (name === 'department') {
+            setFormData(prev => ({ ...prev, className: '' }));
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        console.log('Form submitted', formData);
+
+        if (!validateForm()) {
+            return;
+        }
+
+        setIsLoading(true);
+
+        try {
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: formData.name,
+                    email: formData.email,
+                    password: formData.password,
+                    school: formData.school,
+                    department: formData.department,
+                    year: formData.year,
+                    rollNumber: formData.rollNumber,
+                    className: formData.className,
+                    studentContact: formData.studentContact || undefined,
+                    parentName: formData.parentName || undefined,
+                    parentContact: formData.parentContact || undefined
+                })
+            });
+
+            const data = await response.json();
+            console.log('Response:', data);
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Registration failed');
+            }
+
+            toast.success('Registration successful! Please verify your email.');
+
+            setTimeout(() => {
+                router.push(`/auth/verify?email=${encodeURIComponent(formData.email)}`);
+            }, 2000);
+
+        } catch (error) {
+            console.error('Registration error:', error);
+            toast.error(error instanceof Error ? error.message : 'Registration failed');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const validateForm = () => {
-        if (!formData.name || !formData.email || !formData.password || !formData.school ||
-            !formData.year || !formData.rollNumber || !formData.className) {
+        if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword ||
+            !formData.school || !formData.year || !formData.rollNumber || !formData.className) {
             toast.error('Please fill in all required fields');
             return false;
         }
@@ -86,35 +151,6 @@ export default function RegisterPage() {
         }
 
         return true;
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!validateForm()) return;
-
-        setIsLoading(true);
-        try {
-            const response = await fetch('/api/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Registration failed');
-            }
-
-            toast.success('Registration successful! Please verify your email.');
-            // Redirect to verify page with email parameter
-            router.push(`/auth/verify?email=${encodeURIComponent(formData.email)}`);
-
-        } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Registration failed');
-        } finally {
-            setIsLoading(false);
-        }
     };
 
     return (
@@ -272,11 +308,24 @@ export default function RegisterPage() {
                                             <SelectValue placeholder="Select Class/Section" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {classOptions[formData.department || 'default']?.map((className) => (
-                                                <SelectItem key={className} value={className}>
-                                                    {className}
-                                                </SelectItem>
-                                            ))}
+                                            {formData.department === 'CSE' ? (
+                                                <>
+                                                    <SelectItem value="CSE-A">CSE-A</SelectItem>
+                                                    <SelectItem value="CSE-B">CSE-B</SelectItem>
+                                                    <SelectItem value="CSE-C">CSE-C</SelectItem>
+                                                    <SelectItem value="CSE-D">CSE-D</SelectItem>
+                                                    <SelectItem value="CSE-CDFD">CSE-CDFD</SelectItem>
+                                                    <SelectItem value="CSE-AIML-A">CSE-AIML-A</SelectItem>
+                                                    <SelectItem value="CSE-AIML-B">CSE-AIML-B</SelectItem>
+                                                    <SelectItem value="CSE-FSD">CSE-FSD</SelectItem>
+                                                </>
+                                            ) : (
+                                                classOptions[formData.department || 'default']?.map((className) => (
+                                                    <SelectItem key={className} value={className}>
+                                                        {className}
+                                                    </SelectItem>
+                                                ))
+                                            )}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -314,7 +363,7 @@ export default function RegisterPage() {
 
                             <Button
                                 type="submit"
-                                className="w-full bg-[#004a7c] hover:bg-[#004a7c]/90 h-10 text-white"
+                                className="w-full bg-[#004a7c] hover:bg-[#004a7c]/90 text-white"
                                 disabled={isLoading}
                             >
                                 {isLoading ? (

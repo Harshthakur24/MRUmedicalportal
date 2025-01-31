@@ -1,16 +1,15 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
 import { hash } from 'bcryptjs';
-import { sendVerificationEmail } from '@/lib/email';
-import { randomBytes } from 'crypto';
+import { db } from '@/lib/db';
 
 export async function POST(req: Request) {
     try {
-        const data = await req.json();
+        const body = await req.json();
         const {
             name,
             email,
             password,
+            school,
             department,
             year,
             rollNumber,
@@ -18,78 +17,50 @@ export async function POST(req: Request) {
             studentContact,
             parentName,
             parentContact
-        } = data;
-
-        // Validate required fields
-        if (!name || !email || !password || !department || !year || !rollNumber || !className) {
-            return NextResponse.json(
-                { error: 'Missing required fields' },
-                { status: 400 }
-            );
-        }
+        } = body;
 
         // Check if user already exists
-        const existingUser = await prisma.user.findUnique({
+        const existingUser = await db.user.findUnique({
             where: { email }
         });
 
         if (existingUser) {
             return NextResponse.json(
-                { error: 'Email already registered' },
+                { error: 'User with this email already exists' },
                 { status: 400 }
             );
         }
 
         // Hash password
-        const hashedPassword = await hash(password, 12);
-        
-        // Generate verification token
-        const verificationToken = randomBytes(32).toString('hex');
+        const hashedPassword = await hash(password, 10);
 
-        // Use transaction to ensure both user and account are created
-        const createdUser = await prisma.$transaction(async (prisma) => {
-            // Create user first
-            const user = await prisma.user.create({
-                data: {
-                    email,
-                    name,
-                    role: 'STUDENT',
-                    verificationToken,
-                    department,
-                    rollNumber,
-                    year,
-                    studentContact,
-                    parentName,
-                    parentContact,
-                    className,
-                    emailVerified: null // Ensure email is not verified by default
-                }
-            });
-
-            // Create account with hashed password
-            await prisma.account.create({
-                data: {
-                    userId: user.id,
-                    type: 'credentials',
-                    provider: 'credentials',
-                    providerAccountId: email,
-                    access_token: hashedPassword
-                }
-            });
-
-            return user;
+        // Create user
+        const user = await db.user.create({
+            data: {
+                name,
+                email,
+                password: hashedPassword,
+                school,
+                department,
+                year,
+                rollNumber,
+                className,
+                studentContact,
+                parentName,
+                parentContact,
+                role: 'STUDENT' // Default role
+            }
         });
 
-        // Send verification email
-        await sendVerificationEmail(createdUser.email!, verificationToken);
+        return NextResponse.json(
+            { message: 'User created successfully', user: { id: user.id, email: user.email } },
+            { status: 201 }
+        );
 
-        return NextResponse.json({ 
-            message: 'Registration successful. Please check your email to verify your account.' 
-        });
     } catch (error) {
         console.error('Registration error:', error);
         return NextResponse.json(
-            { error: 'Failed to register user. Please try again.' },
+            { error: 'Error creating user' },
             { status: 500 }
         );
     }
