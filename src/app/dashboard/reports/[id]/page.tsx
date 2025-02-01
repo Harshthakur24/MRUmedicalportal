@@ -131,26 +131,43 @@ export default function ReportDetailsPage({ params }: { params: Promise<{ id: st
         if (!report) return;
 
         try {
+            toast.loading('Downloading medical certificate...');
+
             const response = await fetch(`/api/reports/${resolvedParams.id}`, {
                 headers: {
                     'download': 'true'
                 }
             });
 
-            if (!response.ok) throw new Error('Failed to download file');
+            if (!response.ok) {
+                throw new Error('Failed to download file');
+            }
 
+            // Get the blob from the response
             const blob = await response.blob();
+
+            // Create a URL for the blob
             const url = window.URL.createObjectURL(blob);
+
+            // Create a temporary link element
             const a = document.createElement('a');
             a.href = url;
-            a.download = `medical-report-${resolvedParams.id}.pdf`;
+            a.download = `medical-certificate-${resolvedParams.id}.pdf`;
+
+            // Append to body, click, and remove
             document.body.appendChild(a);
             a.click();
+
+            // Clean up
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
+
+            toast.dismiss();
+            toast.success('Medical certificate downloaded successfully');
         } catch (error) {
             console.error('Download error:', error);
-            toast.error('Failed to download report');
+            toast.dismiss();
+            toast.error('Failed to download medical certificate. Please try again.');
         }
     };
 

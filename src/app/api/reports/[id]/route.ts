@@ -51,19 +51,32 @@ export async function GET(
             );
         }
 
-        // Log the data to verify what we're getting
-        console.log('Report data:', report);
-
         // Set headers for direct download when requested
         const { headers } = request;
         if (headers.get('download') === 'true') {
-            // Add download headers
-            return new NextResponse(report.medicalCertificate, {
-                headers: {
-                    'Content-Disposition': `attachment; filename="medical-report-${report.id}.pdf"`,
-                    'Content-Type': 'application/pdf',
-                },
-            });
+            try {
+                // Fetch the medical certificate
+                const certificateResponse = await fetch(report.medicalCertificate);
+                if (!certificateResponse.ok) {
+                    throw new Error('Failed to fetch medical certificate');
+                }
+
+                // Get the content type from the response
+                const contentType = certificateResponse.headers.get('content-type') || 'application/pdf';
+                const buffer = await certificateResponse.arrayBuffer();
+
+                // Return the file with proper headers
+                return new NextResponse(buffer, {
+                    headers: {
+                        'Content-Type': contentType,
+                        'Content-Disposition': `attachment; filename="medical-certificate-${report.id}.pdf"`,
+                        'Content-Length': buffer.byteLength.toString()
+                    },
+                });
+            } catch (error) {
+                console.error('Download error:', error);
+                return new NextResponse('Failed to download file', { status: 500 });
+            }
         }
 
         return NextResponse.json(report);

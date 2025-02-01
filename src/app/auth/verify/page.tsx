@@ -8,7 +8,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
 function VerifyForm() {
-    const searchParams = useSearchParams();
+    const searchParams = useSearchParams() || new URLSearchParams();
     const token = searchParams.get('token');
     const [status, setStatus] = useState<'verifying' | 'success'>('verifying');
     const [message, setMessage] = useState('Please check your email for the verification link.');
