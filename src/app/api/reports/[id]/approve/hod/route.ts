@@ -10,11 +10,11 @@ interface RouteContext {
 
 export async function POST(
     request: Request,
-    { params }: RouteContext
+    context: RouteContext
 ) {
     try {
         const session = await auth();
-        const { id } = params;
+        const { id } = context.params;
         const data = await request.json() as { comment: string; approved: boolean };
 
         // Debug session info
@@ -25,7 +25,7 @@ export async function POST(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Check if report exists and is approved by PC
+        // Check if report exists and belongs to HOD's department
         const report = await prisma.medicalReport.findUnique({
             where: { id },
             include: {
@@ -46,13 +46,24 @@ export async function POST(
             id: report.id,
             status: report.status,
             approvedByPC: report.approvedByProgramCoordinator,
-            approvedByHOD: report.approvedByHOD,
-            department: report.student?.department
+            studentDept: report.student?.department,
+            hodDept: session.user.department
         });
 
         if (!report.approvedByProgramCoordinator) {
             return NextResponse.json(
                 { error: 'Report must be approved by Program Coordinator first' },
+                { status: 403 }
+            );
+        }
+
+        // Check if HOD's department matches student's department or if HOD is from CST for CSE
+        const canApprove = session.user.department === report.student?.department ||
+            (session.user.department === 'CST' && report.student?.department === 'CSE');
+
+        if (!canApprove) {
+            return NextResponse.json(
+                { error: 'You can only review reports from your department' },
                 { status: 403 }
             );
         }
@@ -64,7 +75,7 @@ export async function POST(
                 approvedByHOD: data.approved,
                 status: data.approved ? 'PENDING' : 'REJECTED',
                 currentApprovalLevel: data.approved ? 'DEAN_ACADEMICS' : 'HOD',
-                reviewComment: data.comment,
+                hodComment: data.comment,
                 reviewedAt: new Date()
             }
         });

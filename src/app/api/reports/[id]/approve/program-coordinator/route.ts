@@ -10,19 +10,23 @@ interface RouteContext {
 
 export async function POST(
     request: Request,
-    { params }: RouteContext
+    context: RouteContext
 ) {
     try {
         const session = await auth();
-        const { id } = params;
+        const { id } = context.params;
         const data = await request.json() as { comment: string; approved: boolean };
+
+        // Debug session info
+        console.log('PC Approval - Session role:', session?.user?.role);
+        console.log('PC Approval - Department:', session?.user?.department);
 
         if (!session?.user || session.user.role !== 'PROGRAM_COORDINATOR') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Get the current report to check department
-        const currentReport = await prisma.medicalReport.findUnique({
+        // Check if report exists and belongs to PC's department
+        const report = await prisma.medicalReport.findUnique({
             where: { id },
             include: {
                 student: {
@@ -33,38 +37,52 @@ export async function POST(
             }
         });
 
-        if (!currentReport) {
+        if (!report) {
             return NextResponse.json({ error: 'Report not found' }, { status: 404 });
         }
 
-        // Verify PC is from same department as student
-        if (session.user.department !== currentReport.student?.department) {
-            return NextResponse.json({ error: 'Unauthorized: Department mismatch' }, { status: 403 });
+        // Debug report info
+        console.log('Report current status:', {
+            id: report.id,
+            status: report.status,
+            studentDept: report.student?.department,
+            pcDept: session.user.department
+        });
+
+        // Check if PC's department matches student's department or if PC is from CST for CSE
+        const canApprove = session.user.department === report.student?.department ||
+            (session.user.department === 'CST' && report.student?.department === 'CSE');
+
+        if (!canApprove) {
+            return NextResponse.json(
+                { error: 'You can only review reports from your department' },
+                { status: 403 }
+            );
         }
 
-        const report = await prisma.medicalReport.update({
+        // Update report based on PC's decision
+        const updatedReport = await prisma.medicalReport.update({
             where: { id },
             data: {
                 approvedByProgramCoordinator: data.approved,
-                programCoordinatorComment: data.comment,
-                currentApprovalLevel: data.approved ? 'HOD' : 'PROGRAM_COORDINATOR',
                 status: data.approved ? 'PENDING' : 'REJECTED',
+                currentApprovalLevel: data.approved ? 'HOD' : 'PROGRAM_COORDINATOR',
+                programCoordinatorComment: data.comment,
                 reviewedAt: new Date()
-            },
-            include: {
-                student: {
-                    select: {
-                        name: true,
-                        email: true,
-                        department: true
-                    }
-                }
             }
         });
 
-        return NextResponse.json(report);
+        // Debug updated report
+        console.log('Updated report status:', {
+            id: updatedReport.id,
+            status: updatedReport.status,
+            approvedByPC: updatedReport.approvedByProgramCoordinator,
+            currentLevel: updatedReport.currentApprovalLevel
+        });
+
+        return NextResponse.json(updatedReport);
     } catch (error) {
-        console.error('Error approving report:', error);
-        return NextResponse.json({ error: 'Failed to approve report' }, { status: 500 });
+        console.error('Error updating report:', error);
+        return NextResponse.json({ error: 'Failed to update report' }, { status: 500 });
     }
 } 

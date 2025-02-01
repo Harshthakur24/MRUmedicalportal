@@ -2,6 +2,24 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { v2 as cloudinary } from 'cloudinary';
+import { Prisma } from '@prisma/client';
+
+type StudentSelect = {
+    id: true;
+    name: true;
+    email: true;
+    department: true;
+    rollNumber: true;
+    year: true;
+};
+
+type ReportWithStudent = Prisma.MedicalReportGetPayload<{
+    include: {
+        student: {
+            select: StudentSelect;
+        };
+    };
+}>;
 
 // Configure Cloudinary
 cloudinary.config({
@@ -136,81 +154,106 @@ export async function GET() {
     try {
         const session = await auth();
         if (!session?.user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            return new NextResponse(
+                JSON.stringify({ error: 'Unauthorized' }), 
+                { status: 401, headers: { 'Content-Type': 'application/json' } }
+            );
         }
 
-        // Debug session info
-        console.log('Session user role:', session.user.role);
-        console.log('Session user department:', session.user.department);
+        const studentSelect: StudentSelect = {
+            id: true,
+            name: true,
+            email: true,
+            department: true,
+            rollNumber: true,
+            year: true
+        };
 
-        let reports;
+        let reports: ReportWithStudent[] = [];
+        
+        // Debug logging for session info
+        console.log('User Role:', session.user.role);
+        console.log('User Department:', session.user.department);
+        
+        // STUDENT: Can only see their own reports
         if (session.user.role === 'STUDENT') {
             reports = await prisma.medicalReport.findMany({
-                where: { studentId: session.user.id },
+                where: {
+                    studentId: session.user.id
+                },
                 include: {
                     student: {
-                        select: {
-                            name: true,
-                            email: true,
-                            department: true
-                        }
+                        select: studentSelect
                     }
                 },
                 orderBy: { createdAt: 'desc' }
             });
-        } else if (session.user.role === 'PROGRAM_COORDINATOR') {
-            reports = await prisma.medicalReport.findMany({
-                where: session.user.department ? {
-                    department: session.user.department,
-                    OR: [
-                        // Show new reports submitted by students
-                        { 
-                            approvedByProgramCoordinator: false, 
-                            approvedByHOD: false,
-                            approvedByDeanAcademics: false,
-                            status: 'PENDING' 
-                        },
-                        // Show reports handled by PC themselves
-                        { 
-                            approvedByProgramCoordinator: true, 
-                            approvedByHOD: false,
-                            approvedByDeanAcademics: false,
-                        }
-                    ]
-                } : {
-                    OR: [
-                        { 
-                            approvedByProgramCoordinator: true, 
-                            approvedByHOD: false,
-                            approvedByDeanAcademics: false,
-                            status: 'PENDING' 
-                        }
-                    ]
-                },
-                include: {
-                    student: {
-                        select: {
-                            name: true,
-                            email: true,
-                            department: true
-                        }
-                    }
-                },
-                orderBy: { createdAt: 'desc' }
-            });
-        } else if (session.user.role === 'HOD') {
+        }
+        
+        // PROGRAM_COORDINATOR: Can see reports from their department that need their approval
+        else if (session.user.role === 'PROGRAM_COORDINATOR' && session.user.department) {
+            // Handle CST/CSE department matching
+            const departmentCondition = session.user.department === 'CST' 
+                ? { in: ['CST', 'CSE'] }  // If PC is from CST, show both CST and CSE reports
+                : session.user.department; // Otherwise, exact match
+            
+            console.log('PC Department Condition:', departmentCondition);
+            
             reports = await prisma.medicalReport.findMany({
                 where: {
+                    student: {
+                        department: departmentCondition
+                    },
                     OR: [
-                        // Show reports approved by PC
                         {
-                            approvedByProgramCoordinator: true,
-                            approvedByHOD: false,
-                            approvedByDeanAcademics: false,
-                            status: 'PENDING'
+                            status: 'PENDING',
+                            approvedByProgramCoordinator: false
                         },
-                        // Show reports handled by HOD themselves
                         {
+                            status: 'PENDING',
+                            approvedByProgramCoordinator: true,
+                            approvedByHOD: false
+                        }
+                    ]
+                },
+                include: {
+                    student: {
+                        select: studentSelect
+                    }
+                },
+                orderBy: { createdAt: 'desc' }
+            });
+            
+            console.log('Found Reports for PC:', reports.length);
+            console.log('Reports Details:', reports.map(r => ({
+                id: r.id,
+                studentDept: r.student?.department,
+                status: r.status,
+                approvedByPC: r.approvedByProgramCoordinator
+            })));
+        }
+        
+        // HOD: Can see reports from their department
+        else if (session.user.role === 'HOD' && session.user.department) {
+            // Handle CST/CSE department matching for HOD
+            const departmentCondition = session.user.department === 'CST' 
+                ? { in: ['CST', 'CSE'] }
+                : session.user.department;
+            
+            reports = await prisma.medicalReport.findMany({
+                where: {
+                    student: {
+                        department: departmentCondition
+                    },
+                    OR: [
+                        {
+                            status: 'PENDING',
+                            approvedByProgramCoordinator: true,
+                            approvedByHOD: false
+                        },
+                        {
+                            status: 'PENDING',
+                            approvedByProgramCoordinator: true,
                             approvedByHOD: true,
                             approvedByDeanAcademics: false
                         }
@@ -218,69 +261,44 @@ export async function GET() {
                 },
                 include: {
                     student: {
-                        select: {
-                            name: true,
-                            email: true,
-                            department: true,
-                            rollNumber: true,
-                            year: true
-                        }
-                    }
-                },
-                orderBy: { createdAt: 'desc' }
-            });
-        } else if (session.user.role === 'DEAN_ACADEMICS') {
-            reports = await prisma.medicalReport.findMany({
-                where: {
-                    OR: [
-                        // Show reports approved by HOD
-                        {
-                            approvedByProgramCoordinator: true,
-                            approvedByHOD: true,
-                            approvedByDeanAcademics: false,
-                            status: 'PENDING'
-                        },
-                        // Show reports handled by Dean themselves
-                        {
-                            approvedByDeanAcademics: true
-                        }
-                    ]
-                },
-                include: {
-                    student: {
-                        select: {
-                            name: true,
-                            email: true,
-                            department: true,
-                            rollNumber: true,
-                            year: true
-                        }
-                    }
-                },
-                orderBy: { createdAt: 'desc' }
-            });
-        } else {
-            reports = await prisma.medicalReport.findMany({
-                where: { studentId: session.user.id },
-                include: {
-                    student: {
-                        select: {
-                            name: true,
-                            email: true,
-                            department: true
-                        }
+                        select: studentSelect
                     }
                 },
                 orderBy: { createdAt: 'desc' }
             });
         }
+        
+        // DEAN: Can see all reports that need dean's approval
+        else if (session.user.role === 'DEAN_ACADEMICS') {
+            reports = await prisma.medicalReport.findMany({
+                where: {
+                    status: 'PENDING',
+                    approvedByProgramCoordinator: true,
+                    approvedByHOD: true,
+                    approvedByDeanAcademics: false
+                },
+                include: {
+                    student: {
+                        select: studentSelect
+                    }
+                },
+                orderBy: { createdAt: 'desc' }
+            });
+        }
+        
+        // Add debug logging for final results
+        console.log('Total Reports Found:', reports.length);
 
-        return NextResponse.json(reports);
+        return new NextResponse(
+            JSON.stringify(reports),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+
     } catch (error) {
         console.error('Error fetching reports:', error);
-        return NextResponse.json(
-            { error: 'Failed to fetch reports' },
-            { status: 500 }
+        return new NextResponse(
+            JSON.stringify({ error: 'Failed to fetch reports' }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } }
         );
     }
 } 
