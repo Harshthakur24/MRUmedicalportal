@@ -37,6 +37,7 @@ export default function LoginPage() {
                         position: 'top-center',
                     });
                 }
+                setIsLoading(false);
                 return;
             }
 
@@ -44,30 +45,26 @@ export default function LoginPage() {
             const userResponse = await fetch('/api/auth/session');
             const session = await userResponse.json();
 
-            toast.success('Login successful!',
-                {
-                    duration: 2000,
-                }
-            );
+            toast.success('Login successful!', {
+                duration: 2000,
+            });
 
             // Redirect based on user role
             setTimeout(() => {
-                const isAdmin = ['PROGRAM_COORDINATOR', 'HOD', 'DEAN_ACADEMICS'].includes(session?.user?.role);
-                if (isAdmin) {
+                if (['PROGRAM_COORDINATOR', 'HOD', 'DEAN_ACADEMICS'].includes(session?.user?.role)) {
                     router.push('/dashboard/reports');
-                } else if (session?.user?.role === 'ADMIN') {
-                    router.push('/admin/dashboard');
+                } else if (session?.user?.role === 'STUDENT') {
+                    router.push('/dashboard');
                 } else {
                     router.push('/');
                 }
                 router.refresh();
-            }, 2000);
+            }, 1000);
 
         } catch (error) {
             toast.error('An error occurred during login', {
                 position: 'top-center',
             });
-        } finally {
             setIsLoading(false);
         }
     };
@@ -154,7 +151,6 @@ export default function LoginPage() {
                     </CardContent>
                 </Card>
             </div>
-
         </div>
     );
 }

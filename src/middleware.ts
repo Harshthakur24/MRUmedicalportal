@@ -16,19 +16,23 @@ export default withAuth(
             return NextResponse.redirect(new URL('/auth/login', req.url));
         }
 
-        // Handle admin routes
-        if (path.startsWith('/admin/')) {
-            const isAdmin = ['PROGRAM_COORDINATOR', 'HOD', 'DEAN_ACADEMICS', 'ADMIN'].includes(token.role);
+        // Handle admin routes (PC, HOD, DEAN_ACADEMICS)
+        if (path.startsWith('/dashboard/reports')) {
+            const isAdmin = ['PROGRAM_COORDINATOR', 'HOD', 'DEAN_ACADEMICS'].includes(token.role);
             if (!isAdmin) {
                 return NextResponse.redirect(new URL('/dashboard', req.url));
             }
+            return NextResponse.next();
         }
 
-        // Handle student routes
-        if (path.startsWith('/dashboard/') && !path.startsWith('/dashboard/reports/')) {
-            if (token.role !== 'STUDENT') {
-                return NextResponse.redirect(new URL('/admin/dashboard', req.url));
-            }
+        // Handle student dashboard
+        if (path.startsWith('/dashboard') && token.role === 'STUDENT') {
+            return NextResponse.next();
+        }
+
+        // Handle API routes
+        if (path.startsWith('/api/')) {
+            return NextResponse.next();
         }
 
         return NextResponse.next();
@@ -43,7 +47,6 @@ export default withAuth(
 export const config = {
     matcher: [
         '/dashboard/:path*',
-        '/admin/:path*',
         '/api/:path*',
         '/submit-report/:path*'
     ]
