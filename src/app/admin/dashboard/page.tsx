@@ -363,11 +363,9 @@ export default function AdminDashboardPage() {
                                             header: "Status",
                                             accessorKey: "status",
                                             cell: ({ row }) => (
-                                                <span className={`px-2 py-1 rounded-full text-xs ${row.original.status === 'APPROVED' || 'COMPLETED'
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : row.original.status === 'REJECTED'
-                                                        ? 'bg-red-100 text-red-800'
-                                                        : 'bg-yellow-100 text-yellow-800'
+                                                <span className={`px-2 py-1 rounded-full text-xs ${row.original.status === 'APPROVED' || row.original.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                                                        row.original.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
+                                                            'bg-yellow-100 text-yellow-800'
                                                     }`}>
                                                     {row.original.status}
                                                 </span>
@@ -472,4 +470,4 @@ export default function AdminDashboardPage() {
             </div>
         </div>
     );
-} 
+}
