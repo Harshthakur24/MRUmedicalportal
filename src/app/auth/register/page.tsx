@@ -75,6 +75,12 @@ export default function RegisterPage() {
         }
     };
 
+    const handleRollNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        // Convert to uppercase and remove any non-alphanumeric characters
+        const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        setFormData(prev => ({ ...prev, rollNumber: value }));
+    };
+
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         console.log('Form submitted', formData);
@@ -291,11 +297,15 @@ export default function RegisterPage() {
                                     <Label htmlFor="rollNumber">Roll Number *</Label>
                                     <Input
                                         id="rollNumber"
+                                        type="text"
+                                        placeholder="Roll Number (e.g., R2110)"
                                         name="rollNumber"
                                         value={formData.rollNumber}
-                                        onChange={handleInputChange}
+                                        onChange={handleRollNumberChange}
                                         disabled={isLoading}
                                         required
+                                        className="w-full bg-white/50 backdrop-blur-sm focus:bg-white transition-all duration-300"
+                                        style={{ textTransform: 'uppercase' }}
                                     />
                                 </div>
                                 <div className="space-y-2">

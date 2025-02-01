@@ -14,7 +14,10 @@ export async function POST(req: Request) {
     try {
         const session = await auth();
         if (!session?.user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            return new NextResponse(
+                JSON.stringify({ error: 'Unauthorized' }), 
+                { status: 401, headers: { 'Content-Type': 'application/json' } }
+            );
         }
 
         const data = await req.json();
@@ -35,9 +38,9 @@ export async function POST(req: Request) {
 
         for (const field of requiredFields) {
             if (!data[field]) {
-                return NextResponse.json(
-                    { error: `Missing required field: ${field}` },
-                    { status: 400 }
+                return new NextResponse(
+                    JSON.stringify({ error: `Missing required field: ${field}` }),
+                    { status: 400, headers: { 'Content-Type': 'application/json' } }
                 );
             }
         }
@@ -56,28 +59,26 @@ export async function POST(req: Request) {
                     {
                         folder: 'medical_certificates',
                         resource_type: 'auto',
-                        timeout: 60000, // 60 seconds timeout
-                        chunk_size: 6000000 // 6MB chunks for better upload handling
+                        timeout: 60000,
+                        chunk_size: 6000000
                     }
                 );
                 medicalCertificateUrl = uploadResponse.secure_url;
-            } catch (error: unknown) {
+            } catch (error) {
                 console.error('Failed to upload medical certificate:', error);
                 let errorMessage = 'Failed to upload medical certificate.';
-                if (typeof error === 'object' && error !== null && 'name' in error) {
-                    if (error.name === 'TimeoutError') {
-                        errorMessage = 'Upload timed out. Please try again with a smaller file or better connection.';
-                    }
+                if (error instanceof Error && error.name === 'TimeoutError') {
+                    errorMessage = 'Upload timed out. Please try again with a smaller file or better connection.';
                 }
-                return NextResponse.json(
-                    { error: errorMessage },
-                    { status: 500 }
+                return new NextResponse(
+                    JSON.stringify({ error: errorMessage }),
+                    { status: 500, headers: { 'Content-Type': 'application/json' } }
                 );
             }
         } else {
-            return NextResponse.json(
-                { error: 'Medical certificate is required' },
-                { status: 400 }
+            return new NextResponse(
+                JSON.stringify({ error: 'Medical certificate is required' }),
+                { status: 400, headers: { 'Content-Type': 'application/json' } }
             );
         }
         
@@ -117,12 +118,16 @@ export async function POST(req: Request) {
             }
         });
 
-        return NextResponse.json(report);
+        return new NextResponse(
+            JSON.stringify(report),
+            { status: 201, headers: { 'Content-Type': 'application/json' } }
+        );
+
     } catch (error) {
         console.error('Error creating report:', error);
-        return NextResponse.json(
-            { error: 'Failed to create report' },
-            { status: 500 }
+        return new NextResponse(
+            JSON.stringify({ error: 'Failed to create report' }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } }
         );
     }
 }
