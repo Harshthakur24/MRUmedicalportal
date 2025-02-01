@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { v2 as cloudinary } from 'cloudinary';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 // Configure Cloudinary
 cloudinary.config({
@@ -134,7 +136,13 @@ export async function POST(req: Request) {
 
 export async function GET() {
     try {
-        const reports = await prisma.medicalReport.findMany({
+        const session = await getServerSession(authOptions);
+        if (!session?.user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        let reports;
+        const baseQuery = {
             include: {
                 student: {
                     select: {
@@ -144,7 +152,101 @@ export async function GET() {
                     }
                 }
             }
-        });
+        };
+
+        switch (session.user.role) {
+            case 'PROGRAM_COORDINATOR':
+                // Program Coordinator can only see:
+                // 1. Pending reports assigned to them
+                // 2. Reports rejected by HOD and sent back to them
+                reports = await prisma.medicalReport.findMany({
+                    where: {
+                        OR: [
+                            {
+                                status: 'PENDING',
+                                currentApprovalLevel: 'PROGRAM_COORDINATOR',
+                                approvedByProgramCoordinator: false
+                            },
+                            {
+                                status: 'PENDING',
+                                currentApprovalLevel: 'PROGRAM_COORDINATOR',
+                                approvedByProgramCoordinator: false,
+                                approvedByHOD: false
+                            }
+                        ],
+                        status: {
+                            not: 'COMPLETED'
+                        }
+                    },
+                    ...baseQuery
+                });
+                break;
+
+            case 'HOD':
+                // HOD can only see:
+                // 1. Reports approved by Program Coordinator
+                // 2. Not yet approved by Dean
+                // 3. Not completed
+                reports = await prisma.medicalReport.findMany({
+                    where: {
+                        approvedByProgramCoordinator: true,
+                        approvedByDeanAcademics: false,
+                        status: {
+                            not: 'COMPLETED'
+                        },
+                        OR: [
+                            {
+                                status: 'PENDING',
+                                currentApprovalLevel: 'HOD'
+                            },
+                            {
+                                status: 'PENDING',
+                                approvedByHOD: false
+                            }
+                        ]
+                    },
+                    ...baseQuery
+                });
+                break;
+
+            case 'DEAN_ACADEMICS':
+                // Dean can only see:
+                // 1. Reports approved by HOD
+                // 2. Not yet completed
+                reports = await prisma.medicalReport.findMany({
+                    where: {
+                        approvedByHOD: true,
+                        status: {
+                            not: 'COMPLETED'
+                        },
+                        OR: [
+                            {
+                                status: 'PENDING',
+                                currentApprovalLevel: 'DEAN_ACADEMICS'
+                            },
+                            {
+                                status: 'PENDING',
+                                approvedByDeanAcademics: false
+                            }
+                        ]
+                    },
+                    ...baseQuery
+                });
+                break;
+
+            case 'STUDENT':
+                // Students can see their own reports
+                reports = await prisma.medicalReport.findMany({
+                    where: {
+                        studentId: session.user.id
+                    },
+                    ...baseQuery
+                });
+                break;
+
+            default:
+                return NextResponse.json({ error: 'Invalid role' }, { status: 403 });
+        }
         
         console.log('API Response:', JSON.stringify(reports, null, 2));
         return NextResponse.json(reports);

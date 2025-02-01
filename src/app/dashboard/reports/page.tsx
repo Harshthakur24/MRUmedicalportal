@@ -66,6 +66,7 @@ export default function ReportsPage() {
             redirect('/auth/login');
         }
     });
+    const { data: session } = useSession();
     const [reports, setReports] = useState<Report[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -77,7 +78,35 @@ export default function ReportsPage() {
             const response = await fetch('/api/reports');
             const data = await response.json();
             console.log('Frontend received data:', data);
-            setReports(data);
+
+            // Filter reports based on user role and approval status
+            let filteredData = data;
+
+            if (session?.user?.role === 'PROGRAM_COORDINATOR') {
+                // Program Coordinator can only see pending reports and reports rejected by HOD
+                filteredData = data.filter((report: Report) =>
+                    (report.status === 'PENDING' && report.currentApprovalLevel === 'PROGRAM_COORDINATOR') ||
+                    (report.status === 'PENDING' && !report.approvedByProgramCoordinator)
+                );
+            } else if (session?.user?.role === 'HOD') {
+                // HOD can only see reports approved by Program Coordinator and not yet approved by Dean
+                filteredData = data.filter((report: Report) =>
+                    report.approvedByProgramCoordinator &&
+                    !report.approvedByDeanAcademics &&
+                    (report.status === 'PENDING' ||
+                        (report.status === 'PENDING' && report.currentApprovalLevel === 'HOD'))
+                );
+            } else if (session?.user?.role === 'DEAN_ACADEMICS') {
+                // Dean can only see reports approved by HOD and not completed
+                filteredData = data.filter((report: Report) =>
+                    report.approvedByHOD &&
+                    report.status !== 'COMPLETED' &&
+                    (report.status === 'PENDING' ||
+                        (report.status === 'PENDING' && report.currentApprovalLevel === 'DEAN_ACADEMICS'))
+                );
+            }
+
+            setReports(filteredData);
         } catch (error) {
             console.error('Failed to fetch reports:', error);
         } finally {

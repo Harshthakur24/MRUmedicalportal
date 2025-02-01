@@ -36,6 +36,21 @@ export async function GET(
             return new NextResponse('Report not found', { status: 404 });
         }
 
+        // Check role-based permissions
+        if (session.user.role === 'HOD' && !report.approvedByProgramCoordinator) {
+            return new NextResponse(
+                'Access denied: Report not approved by Program Coordinator',
+                { status: 403 }
+            );
+        }
+
+        if (session.user.role === 'DEAN_ACADEMICS' && !report.approvedByHOD) {
+            return new NextResponse(
+                'Access denied: Report not approved by HOD',
+                { status: 403 }
+            );
+        }
+
         // Log the data to verify what we're getting
         console.log('Report data:', report);
 
