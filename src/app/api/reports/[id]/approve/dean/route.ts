@@ -61,10 +61,18 @@ export async function POST(
             where: { id },
             data: {
                 approvedByDeanAcademics: data.approved,
-                status: data.approved ? 'APPROVED' : 'REJECTED',
-                currentApprovalLevel: data.approved ? 'COMPLETED' : 'DEAN_ACADEMICS',
+                // If approved by Dean, mark as COMPLETED. If rejected, keep as PENDING
+                status: data.approved ? 'COMPLETED' : 'PENDING',
+                // Keep as COMPLETED if approved, otherwise back to HOD
+                currentApprovalLevel: data.approved ? 'COMPLETED' : 'HOD',
                 deanAcademicsComment: data.comment,
-                reviewedAt: new Date()
+                reviewedAt: new Date(),
+                // Maintain approval chain for visibility
+                approvedByProgramCoordinator: data.approved ? true : report.approvedByProgramCoordinator,
+                approvedByHOD: data.approved ? true : false,
+                // Keep previous comments if approved
+                programCoordinatorComment: data.approved ? report.programCoordinatorComment : report.programCoordinatorComment,
+                hodComment: data.approved ? report.hodComment : null
             }
         });
 
@@ -73,7 +81,12 @@ export async function POST(
             id: updatedReport.id,
             status: updatedReport.status,
             approvedByDean: updatedReport.approvedByDeanAcademics,
-            currentLevel: updatedReport.currentApprovalLevel
+            currentLevel: updatedReport.currentApprovalLevel,
+            approvalChain: {
+                pc: updatedReport.approvedByProgramCoordinator,
+                hod: updatedReport.approvedByHOD,
+                dean: updatedReport.approvedByDeanAcademics
+            }
         });
 
         return NextResponse.json(updatedReport);

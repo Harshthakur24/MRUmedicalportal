@@ -73,10 +73,16 @@ export async function POST(
             where: { id },
             data: {
                 approvedByHOD: data.approved,
-                status: data.approved ? 'PENDING' : 'REJECTED',
-                currentApprovalLevel: data.approved ? 'DEAN_ACADEMICS' : 'HOD',
+                status: 'PENDING', // Always pending as it either goes to Dean or back to PC
+                currentApprovalLevel: data.approved ? 'DEAN_ACADEMICS' : 'PROGRAM_COORDINATOR', // If rejected, goes back to PC
                 hodComment: data.comment,
-                reviewedAt: new Date()
+                reviewedAt: new Date(),
+                // If rejected, reset PC approval and clear Dean comments
+                approvedByProgramCoordinator: data.approved ? true : false,
+                approvedByDeanAcademics: false,
+                deanAcademicsComment: null,
+                // Clear PC comment if rejected to allow for new review
+                programCoordinatorComment: data.approved ? report.programCoordinatorComment : null
             }
         });
 

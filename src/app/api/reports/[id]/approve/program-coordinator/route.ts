@@ -65,10 +65,15 @@ export async function POST(
             where: { id },
             data: {
                 approvedByProgramCoordinator: data.approved,
-                status: data.approved ? 'PENDING' : 'REJECTED',
+                status: data.approved ? 'PENDING' : 'REJECTED', // PC rejection is final
                 currentApprovalLevel: data.approved ? 'HOD' : 'PROGRAM_COORDINATOR',
                 programCoordinatorComment: data.comment,
-                reviewedAt: new Date()
+                reviewedAt: new Date(),
+                // Reset higher level approvals if PC rejects
+                approvedByHOD: false,
+                approvedByDeanAcademics: false,
+                hodComment: data.approved ? report.hodComment : null,
+                deanAcademicsComment: data.approved ? report.deanAcademicsComment : null
             }
         });
 
