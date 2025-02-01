@@ -55,68 +55,47 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
+        email: { label: "email", type: "text" },
+        password: { label: "password", type: "password" },
       },
       async authorize(credentials) {
-        try {
-          if (!credentials?.email || !credentials?.password) {
-            console.log("Missing credentials");
-            throw new Error("Missing credentials");
-          }
-
-          const user = await prisma.user.findUnique({
-            where: {
-              email: credentials.email,
-            },
-            include: {
-              accounts: {
-                where: {
-                  provider: 'credentials'
-                }
-              }
-            }
-          });
-
-          console.log("Found user:", user ? "yes" : "no");
-          console.log("Has account:", user?.accounts[0] ? "yes" : "no");
-
-          if (!user || !user.accounts[0]?.access_token) {
-            console.log("Invalid credentials - user not found or no access token");
-            throw new Error("Invalid credentials");
-          }
-
-          if (!user.emailVerified) {
-            console.log("Email not verified");
-            throw new Error("Please verify your email first");
-          }
-
-          const isPasswordValid = await compare(
-            credentials.password,
-            user.accounts[0].access_token
-          );
-
-          console.log("Password valid:", isPasswordValid ? "yes" : "no");
-
-          if (!isPasswordValid) {
-            console.log("Invalid credentials - password mismatch");
-            throw new Error("Invalid credentials");
-          }
-
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-            school: user.school,
-            department: user.department,
-            year: user.year,
-            rollNumber: user.rollNumber,
-          };
-        } catch (error) {
-          console.error("Auth error:", error);
-          throw error;
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Invalid credentials");
         }
+
+        const user = await prisma.user.findUnique({
+          where: {
+            email: credentials.email,
+          }
+        });
+
+        if (!user || !user.password) {
+          throw new Error("Invalid credentials");
+        }
+
+        if (!user.emailVerified) {
+          throw new Error("Please verify your email before logging in");
+        }
+
+        const isCorrectPassword = await compare(
+          credentials.password,
+          user.password
+        );
+
+        if (!isCorrectPassword) {
+          throw new Error("Invalid credentials");
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          school: user.school,
+          department: user.department,
+          year: user.year,
+          rollNumber: user.rollNumber,
+        };
       },
     }),
   ],
@@ -124,6 +103,8 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.name = user.name;
+        token.email = user.email;
         token.role = user.role;
         token.school = user.school;
         token.department = user.department;
@@ -133,8 +114,10 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
+      if (token) {
         session.user.id = token.id;
+        session.user.name = token.name;
+        session.user.email = token.email;
         session.user.role = token.role;
         session.user.school = token.school;
         session.user.department = token.department;
