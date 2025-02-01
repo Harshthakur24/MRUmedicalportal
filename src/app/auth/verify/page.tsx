@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
-export default function VerifyPage() {
+function VerifyForm() {
     const searchParams = useSearchParams();
     const token = searchParams.get('token');
     const [status, setStatus] = useState<'verifying' | 'success'>('verifying');
@@ -58,5 +58,22 @@ export default function VerifyPage() {
                 </CardContent>
             </Card>
         </div>
+    );
+}
+
+export default function VerifyPage() {
+    return (
+        <Suspense fallback={
+            <div className="container flex h-screen w-screen flex-col items-center justify-center">
+                <Card className="w-[380px]">
+                    <CardHeader>
+                        <CardTitle>Email Verification</CardTitle>
+                        <CardDescription>Loading...</CardDescription>
+                    </CardHeader>
+                </Card>
+            </div>
+        }>
+            <VerifyForm />
+        </Suspense>
     );
 } 
