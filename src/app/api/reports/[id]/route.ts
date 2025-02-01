@@ -1,17 +1,24 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(
-    request: NextRequest,
+    request: Request,
     { params }: { params: { id: string } }
 ) {
-    const { id } = params;
-
     try {
+        const session = await getServerSession(authOptions);
+        if (!session) {
+            return new NextResponse('Unauthorized', { status: 401 });
+        }
+
         const report = await prisma.medicalReport.findUnique({
-            where: { id },
+            where: {
+                id: params.id,
+            },
             include: {
                 student: {
                     select: {
@@ -19,29 +26,35 @@ export async function GET(
                         email: true,
                         department: true,
                         className: true,
-                        rollNumber: true
-                    }
-                }
-            }
+                        rollNumber: true,
+                    },
+                },
+            },
         });
 
         if (!report) {
-            return new Response(
-                JSON.stringify({ error: 'Report not found' }), 
-                { status: 404, headers: { 'Content-Type': 'application/json' } }
-            );
+            return new NextResponse('Report not found', { status: 404 });
         }
 
-        return new Response(
-            JSON.stringify(report),
-            { status: 200, headers: { 'Content-Type': 'application/json' } }
-        );
+        // Log the data to verify what we're getting
+        console.log('Report data:', report);
+
+        // Set headers for direct download when requested
+        const { headers } = request;
+        if (headers.get('download') === 'true') {
+            // Add download headers
+            return new NextResponse(report.medicalCertificate, {
+                headers: {
+                    'Content-Disposition': `attachment; filename="medical-report-${report.id}.pdf"`,
+                    'Content-Type': 'application/pdf',
+                },
+            });
+        }
+
+        return NextResponse.json(report);
     } catch (error) {
-        console.error('Error fetching report:', error);
-        return new Response(
-            JSON.stringify({ error: 'Failed to fetch report' }),
-            { status: 500, headers: { 'Content-Type': 'application/json' } }
-        );
+        console.error('Error:', error);
+        return new NextResponse('Internal Server Error', { status: 500 });
     }
 }
 

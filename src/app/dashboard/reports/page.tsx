@@ -13,6 +13,8 @@ interface Report {
         name: string | null;
         email: string | null;
         department: string | null;
+        rollNumber?: string;
+        className?: string;
     };
     disease: string;
     status: string;
@@ -74,6 +76,7 @@ export default function ReportsPage() {
         try {
             const response = await fetch('/api/reports');
             const data = await response.json();
+            console.log('Frontend received data:', data);
             setReports(data);
         } catch (error) {
             console.error('Failed to fetch reports:', error);
@@ -215,9 +218,17 @@ export default function ReportsPage() {
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {filteredReports.map((report) => (
                                     <tr key={report.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="font-medium text-gray-900">
-                                                {report.student?.name || 'N/A'}
+                                        <td className="px-6 py-4">
+                                            <div className="space-y-1">
+                                                <div className="font-medium text-gray-900">
+                                                    {report.student?.name || 'N/A'}
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                    <span className="font-medium">Roll No:</span> {report.student?.rollNumber || 'N/A'}
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                    <span className="font-medium">Class:</span> {report.student?.className || 'N/A'}
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-gray-500">
