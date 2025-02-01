@@ -175,7 +175,7 @@ export default function RegisterPage() {
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="name">Full Name *</Label>
+                                    <Label htmlFor="name">Full Name</Label>
                                     <Input
                                         id="name"
                                         name="name"
@@ -186,7 +186,7 @@ export default function RegisterPage() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="email">Email *</Label>
+                                    <Label htmlFor="email">Email</Label>
                                     <Input
                                         id="email"
                                         name="email"
@@ -198,7 +198,7 @@ export default function RegisterPage() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="password">Password *</Label>
+                                    <Label htmlFor="password">Password</Label>
                                     <Input
                                         id="password"
                                         name="password"
@@ -210,7 +210,7 @@ export default function RegisterPage() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                                    <Label htmlFor="confirmPassword">Confirm Password</Label>
                                     <Input
                                         id="confirmPassword"
                                         name="confirmPassword"
@@ -222,7 +222,7 @@ export default function RegisterPage() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="school">School *</Label>
+                                    <Label htmlFor="school">School</Label>
                                     <Select
                                         value={formData.school}
                                         onValueChange={(value) => handleSelectChange('school', value)}
@@ -241,7 +241,7 @@ export default function RegisterPage() {
                                 </div>
                                 {formData.school === 'Engineering' && (
                                     <div className="space-y-2">
-                                        <Label htmlFor="department">Department *</Label>
+                                        <Label htmlFor="department">Department</Label>
                                         <Select
                                             value={formData.department}
                                             onValueChange={(value) => handleSelectChange('department', value)}
@@ -260,7 +260,7 @@ export default function RegisterPage() {
                                 )}
                                 {formData.school === 'Science' && (
                                     <div className="space-y-2">
-                                        <Label htmlFor="department">Department *</Label>
+                                        <Label htmlFor="department">Department</Label>
                                         <Select
                                             value={formData.department}
                                             onValueChange={(value) => handleSelectChange('department', value)}
@@ -277,7 +277,7 @@ export default function RegisterPage() {
                                     </div>
                                 )}
                                 <div className="space-y-2">
-                                    <Label htmlFor="year">Year *</Label>
+                                    <Label htmlFor="year">Year</Label>
                                     <Select
                                         value={formData.year}
                                         onValueChange={(value) => handleSelectChange('year', value)}
@@ -294,11 +294,11 @@ export default function RegisterPage() {
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="rollNumber">Roll Number *</Label>
+                                    <Label htmlFor="rollNumber">Roll Number</Label>
                                     <Input
                                         id="rollNumber"
                                         type="text"
-                                        placeholder="Roll Number (e.g., R2110)"
+                                        placeholder="Roll Number"
                                         name="rollNumber"
                                         value={formData.rollNumber}
                                         onChange={handleRollNumberChange}
@@ -309,7 +309,7 @@ export default function RegisterPage() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="className">Class/Section *</Label>
+                                    <Label htmlFor="className">Class/Section</Label>
                                     <Select
                                         value={formData.className}
                                         onValueChange={(value) => handleSelectChange('className', value)}
@@ -347,6 +347,7 @@ export default function RegisterPage() {
                                         value={formData.studentContact}
                                         onChange={handleInputChange}
                                         disabled={isLoading}
+                                        required
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -357,6 +358,7 @@ export default function RegisterPage() {
                                         value={formData.parentName}
                                         onChange={handleInputChange}
                                         disabled={isLoading}
+                                        required
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -367,6 +369,7 @@ export default function RegisterPage() {
                                         value={formData.parentContact}
                                         onChange={handleInputChange}
                                         disabled={isLoading}
+                                        required
                                     />
                                 </div>
                             </div>
