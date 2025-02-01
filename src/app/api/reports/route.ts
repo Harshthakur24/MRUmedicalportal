@@ -170,7 +170,7 @@ export async function GET() {
                             {
                                 status: 'PENDING',
                                 currentApprovalLevel: 'PROGRAM_COORDINATOR',
-                                approvedByProgramCoordinator: false,
+                                approvedByProgramCoordinator: true,
                                 approvedByHOD: false
                             }
                         ],
@@ -216,9 +216,6 @@ export async function GET() {
                 reports = await prisma.medicalReport.findMany({
                     where: {
                         approvedByHOD: true,
-                        status: {
-                            not: 'COMPLETED'
-                        },
                         OR: [
                             {
                                 status: 'PENDING',
@@ -227,6 +224,10 @@ export async function GET() {
                             {
                                 status: 'PENDING',
                                 approvedByDeanAcademics: false
+                            },
+                            {
+                                status: 'COMPLETED',
+                                approvedByDeanAcademics: true
                             }
                         ]
                     },
