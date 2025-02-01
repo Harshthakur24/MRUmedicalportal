@@ -309,7 +309,7 @@ export default function ReportDetailsPage({ params }: { params: Promise<{ id: st
                                     <div className="flex items-start space-x-3">
                                         <BookOpen className="w-5 h-5 text-gray-400 mt-1" />
                                         <div>
-                                            <p className="text-sm font-medium text-gray-500">Term 1 Re-examination</p>
+                                            <p className="text-sm font-medium text-gray-500">Semester 1 Re-examination</p>
                                             <p className="text-base text-gray-900">
                                                 {report.t1Reexam ? 'Required' : 'Not Required'}
                                             </p>
@@ -326,7 +326,7 @@ export default function ReportDetailsPage({ params }: { params: Promise<{ id: st
                                     <div className="flex items-start space-x-3">
                                         <BookOpen className="w-5 h-5 text-gray-400 mt-1" />
                                         <div>
-                                            <p className="text-sm font-medium text-gray-500">Term 2 Re-examination</p>
+                                            <p className="text-sm font-medium text-gray-500">Semester 2 Re-examination</p>
                                             <p className="text-base text-gray-900">
                                                 {report.t2Reexam ? 'Required' : 'Not Required'}
                                             </p>
