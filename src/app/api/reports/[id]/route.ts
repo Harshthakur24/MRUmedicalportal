@@ -65,11 +65,17 @@ export async function GET(
                 const contentType = certificateResponse.headers.get('content-type') || 'application/pdf';
                 const buffer = await certificateResponse.arrayBuffer();
 
+                // Create a sanitized filename with student details
+                const sanitizedName = report.student?.name?.replace(/[^a-zA-Z0-9]/g, '') || 'Unknown';
+                const sanitizedRollNumber = report.student?.rollNumber?.replace(/[^a-zA-Z0-9]/g, '') || 'NoRoll';
+                const submissionDate = new Date(report.submissionDate).toISOString().split('T')[0];
+                const fileName = `MedicalReport-${sanitizedName}-${sanitizedRollNumber}-${submissionDate}.pdf`;
+
                 // Return the file with proper headers
                 return new NextResponse(buffer, {
                     headers: {
                         'Content-Type': contentType,
-                        'Content-Disposition': `attachment; filename="medical-certificate-${report.id}.pdf"`,
+                        'Content-Disposition': `attachment; filename="${fileName}"`,
                         'Content-Length': buffer.byteLength.toString()
                     },
                 });

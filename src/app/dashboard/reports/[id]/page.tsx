@@ -146,13 +146,19 @@ export default function ReportDetailsPage({ params }: { params: Promise<{ id: st
             // Get the blob from the response
             const blob = await response.blob();
 
+            // Get the filename from the Content-Disposition header
+            const contentDisposition = response.headers.get('Content-Disposition');
+            const fileName = contentDisposition
+                ? contentDisposition.split('filename=')[1].replace(/"/g, '')
+                : `MedicalReport-${report.student.name}-${report.student.rollNumber}.pdf`;
+
             // Create a URL for the blob
             const url = window.URL.createObjectURL(blob);
 
             // Create a temporary link element
             const a = document.createElement('a');
             a.href = url;
-            a.download = `medical-certificate-${resolvedParams.id}.pdf`;
+            a.download = fileName;
 
             // Append to body, click, and remove
             document.body.appendChild(a);
